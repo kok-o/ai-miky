@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "388080532524",
+    "project_id": "futter-kurs",
+    "storage_bucket": "futter-kurs.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:388080532524:android:d75d7a3e867ba8f8d0a589",
+        "android_client_info": {
+          "package_name": "com.example.my_flutter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0GyjQkddnJofrrse4qIJYJaMgdKPTvmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:388080532524:android:2b13dea62548a95dd0a589",
+        "android_client_info": {
+          "package_name": "com.koko.flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0GyjQkddnJofrrse4qIJYJaMgdKPTvmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,342 @@
+{
+  "@@locale": "ru",
+  "appTitle": "Miku",
+  "@appTitle": {
+    "description": "Название приложения"
+  },
+  
+  "authTitle": "Авторизация",
+  "@authTitle": {
+    "description": "Заголовок экрана авторизации"
+  },
+  
+  "email": "Почта",
+  "@email": {
+    "description": "Поле email"
+  },
+  
+  "password": "Пароль",
+  "@password": {
+    "description": "Поле пароля"
+  },
+  
+  "login": "Войти",
+  "@login": {
+    "description": "Кнопка входа"
+  },
+  
+  "register": "Зарегистрироваться",
+  "@register": {
+    "description": "Кнопка регистрации"
+  },
+  
+  "noAccount": "Нет аккаунта? Регистрация",
+  "@noAccount": {
+    "description": "Ссылка на регистрацию"
+  },
+  
+  "hasAccount": "Уже есть аккаунт? Войти",
+  "@hasAccount": {
+    "description": "Ссылка на вход"
+  },
+  
+  "enterEmailPassword": "Введите почту и пароль",
+  "@enterEmailPassword": {
+    "description": "Сообщение об ошибке валидации"
+  },
+  
+  "profile": "Профиль",
+  "@profile": {
+    "description": "Заголовок экрана профиля"
+  },
+  
+  "name": "Имя",
+  "@name": {
+    "description": "Поле имени"
+  },
+  
+  "aboutMe": "О себе",
+  "@aboutMe": {
+    "description": "Поле о себе"
+  },
+  
+  "saveProfile": "Сохранить профиль",
+  "@saveProfile": {
+    "description": "Кнопка сохранения профиля"
+  },
+  
+  "profileSaved": "Профиль сохранён",
+  "@profileSaved": {
+    "description": "Сообщение об успешном сохранении"
+  },
+  
+  "messages": "Сообщений",
+  "@messages": {
+    "description": "Счетчик сообщений"
+  },
+  
+  "consecutiveDays": "Дней подряд",
+  "@consecutiveDays": {
+    "description": "Счетчик дней подряд"
+  },
+  
+  "model": "Модель",
+  "@model": {
+    "description": "Модель ИИ"
+  },
+  
+  "loginOrRegister": "Войти или зарегистрироваться",
+  "@loginOrRegister": {
+    "description": "Кнопка входа/регистрации"
+  },
+  
+  "appTheme": "Тема приложения",
+  "@appTheme": {
+    "description": "Настройка темы"
+  },
+  
+  "dark": "Тёмная",
+  "@dark": {
+    "description": "Темная тема"
+  },
+  
+  "light": "Светлая",
+  "@light": {
+    "description": "Светлая тема"
+  },
+  
+  "aiModel": "Модель ИИ",
+  "@aiModel": {
+    "description": "Выбор модели ИИ"
+  },
+  
+  "logout": "Выйти",
+  "@logout": {
+    "description": "Кнопка выхода"
+  },
+  
+  "loggedOut": "Вы вышли из аккаунта",
+  "@loggedOut": {
+    "description": "Сообщение о выходе"
+  },
+  
+  "settings": "Настройки",
+  "@settings": {
+    "description": "Заголовок экрана настроек"
+  },
+  
+  "darkTheme": "Тёмная тема",
+  "@darkTheme": {
+    "description": "Переключатель темной темы"
+  },
+  
+  "selectModel": "Выберите модель",
+  "@selectModel": {
+    "description": "Заголовок выбора модели"
+  },
+  
+  "about": "О приложении",
+  "@about": {
+    "description": "О приложении"
+  },
+  
+  "aboutText": "AI Assistant MVP for coursework using Flutter + OpenAI",
+  "@aboutText": {
+    "description": "Текст о приложении"
+  },
+  
+  "chatTitle": "AI Ассистент",
+  "@chatTitle": {
+    "description": "Заголовок чата"
+  },
+  
+  "clearChat": "Очистить чат",
+  "@clearChat": {
+    "description": "Кнопка очистки чата"
+  },
+  
+  "pleaseLogin": "Пожалуйста, войдите в систему",
+  "@pleaseLogin": {
+    "description": "Сообщение о необходимости входа"
+  },
+  
+  "error": "Ошибка",
+  "@error": {
+    "description": "Общее сообщение об ошибке"
+  },
+  
+  "errorAuth": "Ошибка авторизации",
+  "@errorAuth": {
+    "description": "Ошибка авторизации"
+  },
+  
+  "helloMiku": "Привет, я Miku!",
+  "@helloMiku": {
+    "description": "Приветствие"
+  },
+  
+  "personalAssistant": "Твой персональный AI‑ассистент.",
+  "@personalAssistant": {
+    "description": "Описание ассистента"
+  },
+  
+  "startChat": "Начать общение",
+  "@startChat": {
+    "description": "Кнопка начала чата"
+  },
+  
+  "changePhoto": "Изменить фото",
+  "@changePhoto": {
+    "description": "Подсказка для изменения фото"
+  },
+  
+  "loginToChangePhoto": "Войдите в систему для изменения фото",
+  "@loginToChangePhoto": {
+    "description": "Сообщение о необходимости входа для изменения фото"
+  },
+  
+  "camera": "Камера",
+  "@camera": {
+    "description": "Выбор камеры"
+  },
+  
+  "gallery": "Галерея",
+  "@gallery": {
+    "description": "Выбор галереи"
+  },
+  
+  "deletePhoto": "Удалить фото",
+  "@deletePhoto": {
+    "description": "Удаление фото"
+  },
+  
+  "uploadingPhoto": "Загрузка фото...",
+  "@uploadingPhoto": {
+    "description": "Сообщение о загрузке фото"
+  },
+  
+  "photoUpdated": "Фото профиля обновлено",
+  "@photoUpdated": {
+    "description": "Сообщение об успешном обновлении фото"
+  },
+  
+  "photoUploadError": "Ошибка загрузки фото",
+  "@photoUploadError": {
+    "description": "Ошибка загрузки фото"
+  },
+  
+  "deletePhotoConfirm": "Удалить фото?",
+  "@deletePhotoConfirm": {
+    "description": "Подтверждение удаления фото"
+  },
+  
+  "deletePhotoConfirmText": "Вы уверены, что хотите удалить фото профиля?",
+  "@deletePhotoConfirmText": {
+    "description": "Текст подтверждения удаления"
+  },
+  
+  "cancel": "Отмена",
+  "@cancel": {
+    "description": "Кнопка отмены"
+  },
+  
+  "delete": "Удалить",
+  "@delete": {
+    "description": "Кнопка удаления"
+  },
+  
+  "photoDeleted": "Фото удалено",
+  "@photoDeleted": {
+    "description": "Сообщение об удалении фото"
+  },
+  
+  "language": "Язык",
+  "@language": {
+    "description": "Настройка языка"
+  },
+  
+  "selectLanguage": "Выберите язык",
+  "@selectLanguage": {
+    "description": "Заголовок выбора языка"
+  },
+  
+  "russian": "Русский",
+  "@russian": {
+    "description": "Русский язык"
+  },
+  
+  "kazakh": "Қазақша",
+  "@kazakh": {
+    "description": "Казахский язык"
+  },
+  
+  "english": "English",
+  "@english": {
+    "description": "Английский язык"
+  },
+  
+  "showPassword": "Показать пароль",
+  "@showPassword": {
+    "description": "Показать пароль"
+  },
+  
+  "hidePassword": "Скрыть пароль",
+  "@hidePassword": {
+    "description": "Скрыть пароль"
+  },
+  
+  "weakPassword": "Слишком простой пароль.",
+  "@weakPassword": {
+    "description": "Ошибка слабого пароля"
+  },
+  
+  "emailInUse": "Этот Email уже используется.",
+  "@emailInUse": {
+    "description": "Ошибка существующего email"
+  },
+  
+  "registrationError": "Ошибка регистрации: {message}",
+  "@registrationError": {
+    "description": "Ошибка регистрации",
+    "placeholders": {
+      "message": {
+        "type": "Object"
+      }
+    }
+  },
+  
+  "userNotFound": "Пользователь не найден.",
+  "@userNotFound": {
+    "description": "Ошибка пользователь не найден"
+  },
+  
+  "wrongPassword": "Неверный пароль.",
+  "@wrongPassword": {
+    "description": "Ошибка неверного пароля"
+  },
+  
+  "invalidEmail": "Некорректный Email.",
+  "@invalidEmail": {
+    "description": "Ошибка некорректного email"
+  },
+  
+  "loginError": "Ошибка входа: {message}",
+  "@loginError": {
+    "description": "Ошибка входа",
+    "placeholders": {
+      "message": {
+        "type": "Object"
+      }
+    }
+  },
+  
+  "generalError": "Ошибка: {error}",
+  "@generalError": {
+    "description": "Общая ошибка",
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  }
+}
