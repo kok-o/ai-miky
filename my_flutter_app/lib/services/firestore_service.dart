@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/message.dart';
 
 class FirestoreService {
@@ -16,7 +17,7 @@ class FirestoreService {
       // Handle error implicitly or rethrow. 
       // For now, logging to console usually suffices in dev, 
       // but in production consider a crash reporting service.
-      print('Error saving message: $e'); 
+      debugPrint('Error saving message: $e'); 
     }
   }
 
@@ -60,7 +61,7 @@ class FirestoreService {
           .get();
       return snapshot.docs.length;
     } catch (e) {
-      print('Error getting message count: $e');
+      debugPrint('Error getting message count: $e');
       return 0;
     }
   }
@@ -132,7 +133,7 @@ class FirestoreService {
       
       return newConsecutiveDays;
     } catch (e) {
-      print('Error updating consecutive days: $e');
+      debugPrint('Error updating consecutive days: $e');
       return 0;
     }
   }
@@ -147,7 +148,7 @@ class FirestoreService {
       final data = doc.data()!;
       return data['consecutiveDays'] as int? ?? 0;
     } catch (e) {
-      print('Error getting consecutive days: $e');
+      debugPrint('Error getting consecutive days: $e');
       return 0;
     }
   }
@@ -180,7 +181,7 @@ class FirestoreService {
         }, SetOptions(merge: true));
       }
     } catch (e) {
-      print('Error saving profile photo URL: $e');
+      debugPrint('Error saving profile photo URL: $e');
     }
   }
 
@@ -192,8 +193,8 @@ class FirestoreService {
         'bio': bio,
       }, SetOptions(merge: true));
     } catch (e) {
-      print('Error updating user profile: $e');
-      throw e;
+      debugPrint('Error updating user profile: $e');
+      rethrow;
     }
   }
 
@@ -202,13 +203,43 @@ class FirestoreService {
     try {
       final doc = await _db.collection('users').doc(userId).get();
       if (!doc.exists) {
-        return null;
+        // Create initial profile if it doesn't exist
+        await _db.collection('users').doc(userId).set({
+          'role': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        final newDoc = await _db.collection('users').doc(userId).get();
+        return newDoc.data();
       }
       return doc.data();
     } catch (e) {
-      print('Error getting user profile: $e');
+      debugPrint('Error getting user profile: $e');
       return null;
     }
+  }
+
+  // Send an error report
+  Future<void> sendErrorReport(String userId, String userEmail, String description) async {
+    try {
+      await _db.collection('reports').add({
+        'userId': userId,
+        'userEmail': userEmail,
+        'description': description,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'new',
+      });
+    } catch (e) {
+      debugPrint('Error sending error report: $e');
+      rethrow;
+    }
+  }
+
+  // Get stream of all error reports (for admins)
+  Stream<QuerySnapshot<Map<String, dynamic>>> getErrorReports() {
+    return _db
+        .collection('reports')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
   }
 
   // Get profile photo URL
@@ -221,7 +252,7 @@ class FirestoreService {
       final data = doc.data()!;
       return data['profilePhotoUrl'] as String?;
     } catch (e) {
-      print('Error getting profile photo URL: $e');
+      debugPrint('Error getting profile photo URL: $e');
       return null;
     }
   }

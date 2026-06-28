@@ -185,6 +185,16 @@
     "description": "Кнопка начала чата"
   },
   
+  "changeAvatarColor": "Изменить цвет аватара",
+  "@changeAvatarColor": {
+    "description": "Заголовок выбора цвета аватара"
+  },
+  
+  "changeColor": "Сменить цвет",
+  "@changeColor": {
+    "description": "Подсказка для смены цвета"
+  },
+  
   "changePhoto": "Изменить фото",
   "@changePhoto": {
     "description": "Подсказка для изменения фото"
@@ -330,7 +340,37 @@
     }
   },
   
+  "ollamaConnectionError": "Ollama недоступен. Запустите Ollama (ollama serve) или для эмулятора Android укажите http://10.0.2.2:11434 в Настройках → Ollama Base URL. Либо выберите модель Gemini.",
+  "ollamaUrlSaved": "URL Ollama сохранён",
+  "@ollamaConnectionError": {
+    "description": "Ошибка подключения к Ollama"
+  },
+
   "generalError": "Ошибка: {error}",
+  "welcomeBack": "С возвращением!",
+  "createAccount": "Создайте аккаунт",
+  "askSomething": "Спросите что-нибудь...",
+  "ollamaBaseUrl": "Ollama Base URL",
+  "changePassword": "Изменить пароль",
+  "reportBug": "Сообщить об ошибке",
+  "adminPanel": "Панель администратора",
+  "currentPassword": "Текущий пароль",
+  "newPassword": "Новый пароль",
+  "save": "Сохранить",
+  "passwordChanged": "Пароль успешно изменен",
+  "describeProblem": "Опишите проблему...",
+  "send": "Отправить",
+  "reportSent": "Отчет отправлен",
+  "noReports": "Отчетов пока нет",
+  "anonymous": "Аноним",
+  "unknown": "Неизвестно",
+  "description": "Описание:",
+  "noDescription": "Нет описания",
+  "fixed": "Исправлено",
+  "newStatus": "Новый",
+  "home": "Главная",
+  "chat": "Чат",
+  "wrongCurrentPassword": "Неверный текущий пароль",
   "@generalError": {
     "description": "Общая ошибка",
     "placeholders": {

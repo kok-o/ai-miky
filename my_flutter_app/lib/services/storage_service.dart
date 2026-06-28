@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -13,7 +12,7 @@ class StorageService {
       final downloadUrl = await ref.getDownloadURL();
       return downloadUrl;
     } catch (e) {
-      print('Error uploading profile photo: $e');
+      debugPrint('Error uploading profile photo: $e');
       return null;
     }
   }
@@ -24,7 +23,7 @@ class StorageService {
       final ref = _storage.ref().child('profile_photos').child('$userId.jpg');
       await ref.delete();
     } catch (e) {
-      print('Error deleting profile photo: $e');
+      debugPrint('Error deleting profile photo: $e');
     }
   }
 }

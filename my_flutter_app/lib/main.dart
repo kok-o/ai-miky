@@ -11,12 +11,19 @@ import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/auth_screen.dart';
 import 'state/app_state.dart';
+import 'theme/app_theme.dart';
+import 'theme/theme_constants.dart';
 import 'widgets/bottom_nav.dart';
 import 'firebase_options.dart'; // Ensure this assumes generated options
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint("DotEnv load warning: $e");
+  }
   
   try {
      if (kIsWeb) {
@@ -24,20 +31,20 @@ void main() async {
          options: DefaultFirebaseOptions.currentPlatform,
        );
      } else {
-       // For Android/iOS, if google-services.json is present, this works without options
        await Firebase.initializeApp();
      }
   } catch (e) {
-     print("Firebase Init Error: $e");
-     // Attempt fallback
-     try {
-       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-     } catch (_) {}
+     debugPrint("Firebase Init Error: $e");
   }
 
-  final appState = AppState();
-  await appState.load();
-  runApp(ChangeNotifierProvider.value(value: appState, child: const AiAssistantApp()));
+  try {
+    final appState = AppState();
+    await appState.load();
+    runApp(ChangeNotifierProvider.value(value: appState, child: const AiAssistantApp()));
+  } catch (e, stack) {
+    debugPrint("App Init Error: $e\n$stack");
+    runApp(MaterialApp(home: Scaffold(body: Center(child: Text('Init Error: $e', style: TextStyle(color: Colors.red))))));
+  }
 }
 
 class AiAssistantApp extends StatelessWidget {
@@ -46,25 +53,12 @@ class AiAssistantApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final lightTheme = ThemeData(
-      useMaterial3: true,
-      colorSchemeSeed: const Color(0xFF7C8CFF),
-      brightness: Brightness.light,
-      visualDensity: VisualDensity.comfortable,
-    );
-    final darkTheme = ThemeData(
-      useMaterial3: true,
-      colorSchemeSeed: const Color(0xFF7C8CFF),
-      brightness: Brightness.dark,
-      visualDensity: VisualDensity.comfortable,
-    );
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Miku',
       themeMode: appState.themeMode,
-      theme: lightTheme,
-      darkTheme: darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       locale: appState.locale,
       localizationsDelegates: [
         AppLocalizations.delegate,
@@ -91,18 +85,41 @@ class _RootNav extends StatefulWidget {
 
 class _RootNavState extends State<_RootNav> {
   int _index = 0;
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomeScreen(
+        key: const ValueKey('home'),
+        onStartChat: () => setState(() => _index = 1),
+      ),
+      const ChatScreen(key: ValueKey('chat')),
+      const ProfileScreen(key: ValueKey('profile')),
+      const SettingsScreen(key: ValueKey('settings')),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      HomeScreen(onStartChat: () => setState(() => _index = 1)),
-      const ChatScreen(),
-      const ProfileScreen(),
-      const SettingsScreen(),
-    ];
-
     return Scaffold(
-      body: pages[_index],
+      body: AnimatedSwitcher(
+        duration: ThemeConstants.kDurationMed,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.05, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: _pages[_index],
+      ),
       bottomNavigationBar: BottomNav(
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),

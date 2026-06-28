@@ -120,6 +120,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startChat => 'Start Chat';
 
   @override
+  String get changeAvatarColor => 'Change Avatar Color';
+
+  @override
+  String get changeColor => 'Change Color';
+
+  @override
   String get changePhoto => 'Change Photo';
 
   @override
@@ -205,7 +211,85 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get ollamaConnectionError => 'Ollama is unavailable. Start Ollama (ollama serve) or for Android emulator use http://10.0.2.2:11434 in Settings → Ollama Base URL. Or select a Gemini model.';
+
+  @override
+  String get ollamaUrlSaved => 'Ollama URL saved';
+
+  @override
   String generalError(Object error) {
     return 'Error: $error';
   }
+
+  @override
+  String get welcomeBack => 'Welcome back!';
+
+  @override
+  String get createAccount => 'Create account';
+
+  @override
+  String get askSomething => 'Ask something...';
+
+  @override
+  String get ollamaBaseUrl => 'Ollama Base URL';
+
+  @override
+  String get changePassword => 'Change Password';
+
+  @override
+  String get reportBug => 'Report a Bug';
+
+  @override
+  String get adminPanel => 'Admin Panel';
+
+  @override
+  String get currentPassword => 'Current Password';
+
+  @override
+  String get newPassword => 'New Password';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get passwordChanged => 'Password changed successfully';
+
+  @override
+  String get describeProblem => 'Describe the problem...';
+
+  @override
+  String get send => 'Send';
+
+  @override
+  String get reportSent => 'Report sent';
+
+  @override
+  String get noReports => 'No reports yet';
+
+  @override
+  String get anonymous => 'Anonymous';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get description => 'Description:';
+
+  @override
+  String get noDescription => 'No description';
+
+  @override
+  String get fixed => 'Fixed';
+
+  @override
+  String get newStatus => 'New';
+
+  @override
+  String get home => 'Home';
+
+  @override
+  String get chat => 'Chat';
+
+  @override
+  String get wrongCurrentPassword => 'Wrong current password';
 }

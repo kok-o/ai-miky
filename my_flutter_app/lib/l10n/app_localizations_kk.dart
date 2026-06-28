@@ -120,6 +120,12 @@ class AppLocalizationsKk extends AppLocalizations {
   String get startChat => 'Сұхбат бастау';
 
   @override
+  String get changeAvatarColor => 'Аватар түсін өзгерту';
+
+  @override
+  String get changeColor => 'Түсті өзгерту';
+
+  @override
   String get changePhoto => 'Фотоны өзгерту';
 
   @override
@@ -205,7 +211,85 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String get ollamaConnectionError => 'Ollama қол жетімсіз. Ollama іске қосыңыз (ollama serve) немесе Android эмуляторы үшін Баптауларда http://10.0.2.2:11434 көрсетіңіз. Немесе Gemini моделін таңдаңыз.';
+
+  @override
+  String get ollamaUrlSaved => 'Ollama URL сақталды';
+
+  @override
   String generalError(Object error) {
     return 'Қате: $error';
   }
+
+  @override
+  String get welcomeBack => 'Қайта оралуыңызбен!';
+
+  @override
+  String get createAccount => 'Аккаунт жасаңыз';
+
+  @override
+  String get askSomething => 'Бірдеңе сұраңыз...';
+
+  @override
+  String get ollamaBaseUrl => 'Ollama Base URL';
+
+  @override
+  String get changePassword => 'Құпиясөзді өзгерту';
+
+  @override
+  String get reportBug => 'Қате туралы хабарлау';
+
+  @override
+  String get adminPanel => 'Әкімші тақтасы';
+
+  @override
+  String get currentPassword => 'Ағымдағы құпиясөз';
+
+  @override
+  String get newPassword => 'Жаңа құпиясөз';
+
+  @override
+  String get save => 'Сақтау';
+
+  @override
+  String get passwordChanged => 'Құпиясөз сәтті өзгертілді';
+
+  @override
+  String get describeProblem => 'Мәселені сипаттаңыз...';
+
+  @override
+  String get send => 'Жіберу';
+
+  @override
+  String get reportSent => 'Есеп жіберілді';
+
+  @override
+  String get noReports => 'Әзірге есептер жоқ';
+
+  @override
+  String get anonymous => 'Анонимді';
+
+  @override
+  String get unknown => 'Белгісіз';
+
+  @override
+  String get description => 'Сипаттамасы:';
+
+  @override
+  String get noDescription => 'Сипаттама жоқ';
+
+  @override
+  String get fixed => 'Түзетілді';
+
+  @override
+  String get newStatus => 'Жаңа';
+
+  @override
+  String get home => 'Басты бет';
+
+  @override
+  String get chat => 'Чат';
+
+  @override
+  String get wrongCurrentPassword => 'Ағымдағы құпиясөз қате';
 }

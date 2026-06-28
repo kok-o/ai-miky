@@ -120,6 +120,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get startChat => 'Начать общение';
 
   @override
+  String get changeAvatarColor => 'Изменить цвет аватара';
+
+  @override
+  String get changeColor => 'Сменить цвет';
+
+  @override
   String get changePhoto => 'Изменить фото';
 
   @override
@@ -205,7 +211,85 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get ollamaConnectionError => 'Ollama недоступен. Запустите Ollama (ollama serve) или для эмулятора Android укажите http://10.0.2.2:11434 в Настройках → Ollama Base URL. Либо выберите модель Gemini.';
+
+  @override
+  String get ollamaUrlSaved => 'URL Ollama сохранён';
+
+  @override
   String generalError(Object error) {
     return 'Ошибка: $error';
   }
+
+  @override
+  String get welcomeBack => 'С возвращением!';
+
+  @override
+  String get createAccount => 'Создайте аккаунт';
+
+  @override
+  String get askSomething => 'Спросите что-нибудь...';
+
+  @override
+  String get ollamaBaseUrl => 'Ollama Base URL';
+
+  @override
+  String get changePassword => 'Изменить пароль';
+
+  @override
+  String get reportBug => 'Сообщить об ошибке';
+
+  @override
+  String get adminPanel => 'Панель администратора';
+
+  @override
+  String get currentPassword => 'Текущий пароль';
+
+  @override
+  String get newPassword => 'Новый пароль';
+
+  @override
+  String get save => 'Сохранить';
+
+  @override
+  String get passwordChanged => 'Пароль успешно изменен';
+
+  @override
+  String get describeProblem => 'Опишите проблему...';
+
+  @override
+  String get send => 'Отправить';
+
+  @override
+  String get reportSent => 'Отчет отправлен';
+
+  @override
+  String get noReports => 'Отчетов пока нет';
+
+  @override
+  String get anonymous => 'Аноним';
+
+  @override
+  String get unknown => 'Неизвестно';
+
+  @override
+  String get description => 'Описание:';
+
+  @override
+  String get noDescription => 'Нет описания';
+
+  @override
+  String get fixed => 'Исправлено';
+
+  @override
+  String get newStatus => 'Новый';
+
+  @override
+  String get home => 'Главная';
+
+  @override
+  String get chat => 'Чат';
+
+  @override
+  String get wrongCurrentPassword => 'Неверный текущий пароль';
 }

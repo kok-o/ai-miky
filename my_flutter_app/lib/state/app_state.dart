@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,9 +14,11 @@ class AppState extends ChangeNotifier {
   static const String _bioKey = 'profile_bio';
   static const String _avatarColorKey = 'profile_avatar_color';
   static const String _languageKey = 'app_language';
+  static const String _ollamaUrlKey = 'ollama_base_url';
+  static const String _voiceEnabledKey = 'voice_enabled';
 
   ThemeMode _themeMode = ThemeMode.light;
-  String _selectedModel = 'gpt-3.5-turbo';
+  String _selectedModel = 'gemini-2.5-flash';
   String _displayName = '';
   String _bio = '';
   int _avatarColorValue = 0xFF7C8CFF;
@@ -22,10 +26,18 @@ class AppState extends ChangeNotifier {
   int _consecutiveDays = 0;
   String? _profilePhotoUrl;
   Locale _locale = const Locale('ru');
+  String _ollamaBaseUrl = 'http://localhost:11434';
+  String _role = 'user';
+  bool _voiceEnabled = true;
   
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirestoreService _firestoreService = FirestoreService();
   final StorageService _storageService = StorageService();
+  
+  // Stream subscriptions
+  StreamSubscription? _messageCountSub;
+  StreamSubscription? _consecutiveDaysSub;
+  StreamSubscription? _profilePhotoUrlSub;
   
   User? get currentUser => _auth.currentUser;
   bool get isLoggedIn => _auth.currentUser != null;
@@ -40,6 +52,13 @@ class AppState extends ChangeNotifier {
   int get consecutiveDays => _consecutiveDays;
   String? get profilePhotoUrl => _profilePhotoUrl;
   Locale get locale => _locale;
+  String get ollamaBaseUrl => _ollamaBaseUrl;
+  String get role => _role;
+  bool get isAdmin => _role == 'admin';
+  bool get voiceEnabled => _voiceEnabled;
+
+  bool get isOllamaModel => _selectedModel.startsWith('ollama:');
+  String get cleanModelName => isOllamaModel ? _selectedModel.replaceFirst('ollama:', '') : _selectedModel;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -49,12 +68,20 @@ class AppState extends ChangeNotifier {
     final bio = prefs.getString(_bioKey);
     final color = prefs.getInt(_avatarColorKey);
     final languageCode = prefs.getString(_languageKey);
-    
+    final ollamaUrl = prefs.getString(_ollamaUrlKey);
+    final voiceEnabled = prefs.getBool(_voiceEnabledKey);
+
     if (themeIndex != null) {
       _themeMode = ThemeMode.values[themeIndex];
     }
     if (model != null && model.isNotEmpty) {
-      _selectedModel = model;
+      // Validate model exists in current allowed list
+      const allowedModels = ['gemini-2.5-flash', 'ollama:llama3', 'ollama:mistral', 'ollama:qwen3:8b', 'ollama:phi3'];
+      if (allowedModels.contains(model)) {
+        _selectedModel = model;
+      } else {
+        _selectedModel = 'gemini-2.5-flash'; // Fallback
+      }
     }
     if (name != null) {
       _displayName = name;
@@ -68,6 +95,13 @@ class AppState extends ChangeNotifier {
     if (languageCode != null) {
       _locale = Locale(languageCode);
     }
+    if (ollamaUrl != null && ollamaUrl.isNotEmpty) {
+      _ollamaBaseUrl = ollamaUrl;
+    }
+    if (voiceEnabled != null) {
+      _voiceEnabled = voiceEnabled;
+    }
+
     
     // Listen to auth changes
     _auth.authStateChanges().listen((user) {
@@ -77,6 +111,7 @@ class AppState extends ChangeNotifier {
         _messageCount = 0;
         _consecutiveDays = 0;
         _profilePhotoUrl = null;
+        _cancelSubscriptions();
       }
       notifyListeners();
     });
@@ -111,6 +146,9 @@ class AppState extends ChangeNotifier {
       if (profileData.containsKey('profilePhotoUrl')) {
         _profilePhotoUrl = profileData['profilePhotoUrl'] as String;
       }
+      if (profileData.containsKey('role')) {
+        _role = profileData['role'] as String;
+      }
     } else {
        // Only load from prefs if not found in Firestore (or offline/first load fallback)
        // But strictly speaking, if we follow the pattern, we already loaded prefs in load()
@@ -123,25 +161,38 @@ class AppState extends ChangeNotifier {
     // Load message count
     _messageCount = await _firestoreService.getUserMessageCount(userId);
     
+    _messageCountSub?.cancel();
+    _consecutiveDaysSub?.cancel();
+    _profilePhotoUrlSub?.cancel();
+
     // Listen to message count changes
-    _firestoreService.getUserMessageCountStream(userId).listen((count) {
+    _messageCountSub = _firestoreService.getUserMessageCountStream(userId).listen((count) {
       _messageCount = count;
       notifyListeners();
     });
     
     // Listen to consecutive days changes
-    _firestoreService.getConsecutiveDaysStream(userId).listen((days) {
+    _consecutiveDaysSub = _firestoreService.getConsecutiveDaysStream(userId).listen((days) {
       _consecutiveDays = days;
       notifyListeners();
     });
     
     // Listen to profile photo changes
-    _firestoreService.getProfilePhotoUrlStream(userId).listen((url) {
+    _profilePhotoUrlSub = _firestoreService.getProfilePhotoUrlStream(userId).listen((url) {
       _profilePhotoUrl = url;
       notifyListeners();
     });
     
     notifyListeners();
+  }
+
+  void _cancelSubscriptions() {
+    _messageCountSub?.cancel();
+    _messageCountSub = null;
+    _consecutiveDaysSub?.cancel();
+    _consecutiveDaysSub = null;
+    _profilePhotoUrlSub?.cancel();
+    _profilePhotoUrlSub = null;
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -156,6 +207,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_modelKey, model);
+  }
+
+  Future<void> setOllamaBaseUrl(String url) async {
+    _ollamaBaseUrl = url;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_ollamaUrlKey, url);
   }
 
   Future<void> setDisplayName(String name) async {
@@ -192,6 +250,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_languageKey, locale.languageCode);
+  }
+
+  Future<void> setVoiceEnabled(bool value) async {
+    _voiceEnabled = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_voiceEnabledKey, value);
   }
 
   Future<String?> register({
@@ -292,13 +357,43 @@ class AppState extends ChangeNotifier {
       }
       return photoUrl;
     } catch (e) {
-      print('Error uploading profile photo: $e');
+      debugPrint('Error uploading profile photo: $e');
       return null;
     }
   }
 
   Future<void> logout() async {
+    _cancelSubscriptions();
     await _auth.signOut();
+  }
+
+  Future<String?> changePassword(String oldPassword, String newPassword, {dynamic l10n}) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) return l10n?.generalError('Not logged in') ?? 'Пользователь не авторизован';
+
+    try {
+      // Re-authenticate user
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: oldPassword,
+      );
+      await user.reauthenticateWithCredential(credential);
+      
+      // Update password
+      await user.updatePassword(newPassword);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password') return l10n?.wrongPassword ?? 'Неверный текущий пароль';
+      return e.message ?? l10n?.generalError(e.code) ?? 'Ошибка смены пароля';
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<void> submitErrorReport(String description) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _firestoreService.sendErrorReport(user.uid, user.email ?? 'no-email', description);
   }
 }
 

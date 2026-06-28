@@ -319,6 +319,18 @@ abstract class AppLocalizations {
   /// **'Start Chat'**
   String get startChat;
 
+  /// No description provided for @changeAvatarColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Avatar Color'**
+  String get changeAvatarColor;
+
+  /// No description provided for @changeColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Color'**
+  String get changeColor;
+
   /// No description provided for @changePhoto.
   ///
   /// In en, this message translates to:
@@ -481,11 +493,167 @@ abstract class AppLocalizations {
   /// **'Sign in error: {message}'**
   String loginError(Object message);
 
+  /// No description provided for @ollamaConnectionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Ollama is unavailable. Start Ollama (ollama serve) or for Android emulator use http://10.0.2.2:11434 in Settings → Ollama Base URL. Or select a Gemini model.'**
+  String get ollamaConnectionError;
+
+  /// No description provided for @ollamaUrlSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Ollama URL saved'**
+  String get ollamaUrlSaved;
+
   /// No description provided for @generalError.
   ///
   /// In en, this message translates to:
   /// **'Error: {error}'**
   String generalError(Object error);
+
+  /// No description provided for @welcomeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back!'**
+  String get welcomeBack;
+
+  /// No description provided for @createAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get createAccount;
+
+  /// No description provided for @askSomething.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask something...'**
+  String get askSomething;
+
+  /// No description provided for @ollamaBaseUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Ollama Base URL'**
+  String get ollamaBaseUrl;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePassword;
+
+  /// No description provided for @reportBug.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a Bug'**
+  String get reportBug;
+
+  /// No description provided for @adminPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Panel'**
+  String get adminPanel;
+
+  /// No description provided for @currentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Password'**
+  String get currentPassword;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New Password'**
+  String get newPassword;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @passwordChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed successfully'**
+  String get passwordChanged;
+
+  /// No description provided for @describeProblem.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the problem...'**
+  String get describeProblem;
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
+
+  /// No description provided for @reportSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Report sent'**
+  String get reportSent;
+
+  /// No description provided for @noReports.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports yet'**
+  String get noReports;
+
+  /// No description provided for @anonymous.
+  ///
+  /// In en, this message translates to:
+  /// **'Anonymous'**
+  String get anonymous;
+
+  /// No description provided for @unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknown;
+
+  /// No description provided for @description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description:'**
+  String get description;
+
+  /// No description provided for @noDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'No description'**
+  String get noDescription;
+
+  /// No description provided for @fixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed'**
+  String get fixed;
+
+  /// No description provided for @newStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get newStatus;
+
+  /// No description provided for @home.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get home;
+
+  /// No description provided for @chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get chat;
+
+  /// No description provided for @wrongCurrentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong current password'**
+  String get wrongCurrentPassword;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

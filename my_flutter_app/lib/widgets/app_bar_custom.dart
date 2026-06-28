@@ -1,40 +1,48 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../widgets/logo_01.dart';
 
 class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
-  final String title;
+  final String? title;
   final List<Widget>? actions;
 
-  const AppBarCustom({super.key, required this.title, this.actions});
+  const AppBarCustom({super.key, this.title, this.actions});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return AppBar(
-      centerTitle: true,
-      title: ShaderMask(
-        shaderCallback: (bounds) => const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            Color(0xFF8E7CFF),
-            Color(0xFF6AD7FF),
-          ],
-        ).createShader(bounds),
-        blendMode: BlendMode.srcIn,
-        child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.2)),
+    final isDark  = Theme.of(context).brightness == Brightness.dark;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.55)
+                : scheme.surface.withValues(alpha: 0.82),
+            border: Border(
+              bottom: BorderSide(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.07)
+                    : Colors.black.withValues(alpha: 0.06),
+              ),
+            ),
+          ),
+          child: AppBar(
+            centerTitle: true,
+            title: Logo01(size: 26, text: title, heroTag: null),
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            actions: actions,
+          ),
+        ),
       ),
-      backgroundColor: scheme.surface.withOpacity(0.8),
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      scrolledUnderElevation: 4,
-      actions: actions,
     );
   }
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
-
-
-
-
