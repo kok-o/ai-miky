@@ -51,36 +51,26 @@ class GeminiService {
         "parts": [{"text": prompt}]
       });
 
-      final Map<String, dynamic> body = {
+      final Map<String, dynamic> textBody = {
         "systemInstruction": {
           "parts": [{"text": _mikuSystemPrompt}]
         },
         "contents": _history,
-        "generationConfig": {
-          if (requestAudio) "responseModalities": ["TEXT", "AUDIO"],
-          if (requestAudio) "speechConfig": {
-            "voiceConfig": {
-              "prebuiltVoiceConfig": {
-                "voiceName": "Aoede" // Beautiful voice
-              }
-            }
-          }
-        }
       };
 
-      final response = await http.post(
+      final textResponse = await http.post(
         _endpoint,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
+        body: jsonEncode(textBody),
       );
 
-      if (response.statusCode != 200) {
+      if (textResponse.statusCode != 200) {
         // Revert history on error
         _history.removeLast();
-        return GeminiResponse('Ошибка API: ${response.statusCode} - ${response.body}', null);
+        return GeminiResponse('Ошибка API: ${textResponse.statusCode} - ${textResponse.body}', null);
       }
 
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(textResponse.body);
       final candidates = data['candidates'] as List<dynamic>?;
       if (candidates == null || candidates.isEmpty) {
         return GeminiResponse('Нет ответа от Miku.', null);
@@ -89,29 +79,68 @@ class GeminiService {
       final content = candidates[0]['content'] as Map<String, dynamic>;
       final parts = content['parts'] as List<dynamic>? ?? [];
 
-      String textResponse = '';
-      Uint8List? audioResponse;
-
+      String textResult = '';
       for (var part in parts) {
         if (part['text'] != null) {
-          textResponse += part['text'];
-        }
-        if (part['inlineData'] != null) {
-          final inlineData = part['inlineData'];
-          if (inlineData['mimeType'] != null && inlineData['mimeType'].toString().startsWith('audio')) {
-            final b64 = inlineData['data'] as String;
-            audioResponse = base64Decode(b64);
-          }
+          textResult += part['text'];
         }
       }
 
       // Add model response to history
       _history.add({
         "role": "model",
-        "parts": [{"text": textResponse}]
+        "parts": [{"text": textResult}]
       });
 
-      return GeminiResponse(textResponse.trim(), audioResponse);
+      Uint8List? audioResponse;
+
+      if (requestAudio) {
+        // Use the TTS preview model to generate audio from the text
+        final ttsEndpoint = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=$_apiKey');
+        final Map<String, dynamic> ttsBody = {
+          "contents": [{
+            "role": "user",
+            "parts": [{"text": textResult}]
+          }],
+          "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {
+              "voiceConfig": {
+                "prebuiltVoiceConfig": {
+                  "voiceName": "Aoede" // Beautiful voice
+                }
+              }
+            }
+          }
+        };
+
+        final ttsRes = await http.post(
+          ttsEndpoint,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(ttsBody),
+        );
+
+        if (ttsRes.statusCode == 200) {
+          final ttsData = jsonDecode(ttsRes.body);
+          final ttsCandidates = ttsData['candidates'] as List<dynamic>?;
+          if (ttsCandidates != null && ttsCandidates.isNotEmpty) {
+            final ttsParts = ttsCandidates[0]['content']['parts'] as List<dynamic>? ?? [];
+            for (var p in ttsParts) {
+              if (p['inlineData'] != null) {
+                final inlineData = p['inlineData'];
+                if (inlineData['mimeType'] != null && inlineData['mimeType'].toString().startsWith('audio')) {
+                  final b64 = inlineData['data'] as String;
+                  audioResponse = base64Decode(b64);
+                }
+              }
+            }
+          }
+        } else {
+          print('TTS Error: ${ttsRes.body}');
+        }
+      }
+
+      return GeminiResponse(textResult.trim(), audioResponse);
     } catch (e) {
       // Revert history on error
       if (_history.isNotEmpty && _history.last['role'] == 'user') {
