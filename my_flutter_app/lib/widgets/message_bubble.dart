@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'dart:math' as math;
 import '../theme/theme_constants.dart';
 
@@ -94,16 +95,40 @@ class _MessageBubbleState extends State<MessageBubble>
                 ),
               ],
             ),
-            child: Text(
-              widget.text,
-              style: TextStyle(
-                fontSize: 15,
-                color: textColor,
-                height: 1.45,
-                fontWeight:
-                    widget.isUser ? FontWeight.w500 : FontWeight.normal,
-              ),
-            ),
+            child: widget.isUser || widget.isError
+                ? Text(
+                    widget.text,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: textColor,
+                      height: 1.45,
+                      fontWeight:
+                          widget.isUser ? FontWeight.w500 : FontWeight.normal,
+                    ),
+                  )
+                : MarkdownBody(
+                    data: widget.text,
+                    selectable: true,
+                    styleSheet: MarkdownStyleSheet(
+                      p: TextStyle(
+                        fontSize: 15,
+                        color: textColor,
+                        height: 1.45,
+                      ),
+                      strong: TextStyle(
+                        fontSize: 15,
+                        color: textColor,
+                        height: 1.45,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      listBullet: TextStyle(
+                        fontSize: 15,
+                        color: textColor,
+                        height: 1.45,
+                      ),
+                      // Markdown uses default scaling, but we lock the sizes to match the user text
+                    ),
+                  ),
           ),
         ),
       ),

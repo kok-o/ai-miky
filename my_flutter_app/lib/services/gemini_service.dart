@@ -1,5 +1,7 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
 
 const String _mikuSystemPrompt = '''
 Ты — Miku, дружелюбный, умный и немного игривый AI-ассистент. Вот твои правила:
@@ -13,43 +15,109 @@ const String _mikuSystemPrompt = '''
 - Ты можешь использовать эмодзи — но в меру, только когда это уместно.
 ''';
 
-class GeminiService {
-  late final GenerativeModel _model;
-  ChatSession? _chatSession;
+class GeminiResponse {
+  final String text;
+  final Uint8List? audioBytes;
+  GeminiResponse(this.text, this.audioBytes);
+}
 
-  GeminiService({String modelName = 'gemini-2.5-flash'}) {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null) {
+class GeminiService {
+  final String modelName;
+  late final String _apiKey;
+  late final Uri _endpoint;
+  
+  final List<Map<String, dynamic>> _history = [];
+
+  GeminiService({this.modelName = 'gemini-2.5-flash'}) {
+    final key = dotenv.env['GEMINI_API_KEY'];
+    if (key == null) {
       throw Exception('GEMINI_API_KEY not found in env.txt');
     }
-
-    _model = GenerativeModel(
-      model: modelName,
-      apiKey: apiKey,
-      systemInstruction: Content.system(_mikuSystemPrompt),
-      requestOptions: const RequestOptions(apiVersion: 'v1beta'),
-    );
-
-    _startNewSession();
-  }
-
-  void _startNewSession({String? userName}) {
-    final history = <Content>[];
-    _chatSession = _model.startChat(history: history);
+    _apiKey = key;
+    // Using v1beta for responseModalities support
+    _endpoint = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$_apiKey');
   }
 
   /// Сбрасывает историю диалога (вызывать при очистке чата).
   void resetChat() {
-    _startNewSession();
+    _history.clear();
   }
 
-  Future<String> sendMessage(String prompt) async {
+  Future<GeminiResponse> sendMessage(String prompt, {bool requestAudio = false}) async {
     try {
-      _chatSession ??= _model.startChat();
-      final response = await _chatSession!.sendMessage(Content.text(prompt));
-      return response.text ?? 'Нет ответа от Miku.';
+      // Add user message to history
+      _history.add({
+        "role": "user",
+        "parts": [{"text": prompt}]
+      });
+
+      final Map<String, dynamic> body = {
+        "systemInstruction": {
+          "parts": [{"text": _mikuSystemPrompt}]
+        },
+        "contents": _history,
+        "generationConfig": {
+          if (requestAudio) "responseModalities": ["TEXT", "AUDIO"],
+          if (requestAudio) "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Aoede" // Beautiful voice
+              }
+            }
+          }
+        }
+      };
+
+      final response = await http.post(
+        _endpoint,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode != 200) {
+        // Revert history on error
+        _history.removeLast();
+        return GeminiResponse('Ошибка API: ${response.statusCode} - ${response.body}', null);
+      }
+
+      final data = jsonDecode(response.body);
+      final candidates = data['candidates'] as List<dynamic>?;
+      if (candidates == null || candidates.isEmpty) {
+        return GeminiResponse('Нет ответа от Miku.', null);
+      }
+
+      final content = candidates[0]['content'] as Map<String, dynamic>;
+      final parts = content['parts'] as List<dynamic>? ?? [];
+
+      String textResponse = '';
+      Uint8List? audioResponse;
+
+      for (var part in parts) {
+        if (part['text'] != null) {
+          textResponse += part['text'];
+        }
+        if (part['inlineData'] != null) {
+          final inlineData = part['inlineData'];
+          if (inlineData['mimeType'] != null && inlineData['mimeType'].toString().startsWith('audio')) {
+            final b64 = inlineData['data'] as String;
+            audioResponse = base64Decode(b64);
+          }
+        }
+      }
+
+      // Add model response to history
+      _history.add({
+        "role": "model",
+        "parts": [{"text": textResponse}]
+      });
+
+      return GeminiResponse(textResponse.trim(), audioResponse);
     } catch (e) {
-      return 'Ошибка связи с Miku: $e';
+      // Revert history on error
+      if (_history.isNotEmpty && _history.last['role'] == 'user') {
+        _history.removeLast();
+      }
+      return GeminiResponse('Ошибка связи с Miku: $e', null);
     }
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -52,8 +53,15 @@ class VoiceService {
     _isSpeaking = true;
 
     try {
-      // audioplayers can play bytes directly as BytesSource
-      await _audioPlayer.play(BytesSource(pcmBytes));
+      // Add WAV header so audioplayers (and Web browsers) can decode it
+      final wavBytes = _addWavHeader(pcmBytes, sampleRate: 24000, channels: 1);
+      
+      if (kIsWeb) {
+        final b64 = base64Encode(wavBytes);
+        await _audioPlayer.play(UrlSource('data:audio/wav;base64,$b64'));
+      } else {
+        await _audioPlayer.play(BytesSource(wavBytes));
+      }
       _audioPlayer.onPlayerComplete.listen((_) {
         _isSpeaking = false;
       });
@@ -61,6 +69,48 @@ class VoiceService {
       _isSpeaking = false;
       debugPrint('[VoiceService] Error playing PCM bytes: $e');
     }
+  }
+
+  /// Adds a standard RIFF WAV header to raw PCM16 bytes.
+  Uint8List _addWavHeader(Uint8List pcmBytes, {required int sampleRate, required int channels}) {
+    final byteRate = sampleRate * channels * 2; // 16-bit = 2 bytes
+    final totalDataLen = pcmBytes.length + 36;
+    final header = ByteData(44);
+
+    // "RIFF"
+    header.setUint8(0, 0x52);
+    header.setUint8(1, 0x49);
+    header.setUint8(2, 0x46);
+    header.setUint8(3, 0x46);
+    header.setUint32(4, totalDataLen, Endian.little);
+    // "WAVE"
+    header.setUint8(8, 0x57);
+    header.setUint8(9, 0x41);
+    header.setUint8(10, 0x56);
+    header.setUint8(11, 0x45);
+    // "fmt "
+    header.setUint8(12, 0x66);
+    header.setUint8(13, 0x6D);
+    header.setUint8(14, 0x74);
+    header.setUint8(15, 0x20);
+    header.setUint32(16, 16, Endian.little); // Subchunk1Size (16 for PCM)
+    header.setUint16(20, 1, Endian.little); // AudioFormat (1 = PCM)
+    header.setUint16(22, channels, Endian.little);
+    header.setUint32(24, sampleRate, Endian.little);
+    header.setUint32(28, byteRate, Endian.little);
+    header.setUint16(32, channels * 2, Endian.little); // BlockAlign
+    header.setUint16(34, 16, Endian.little); // BitsPerSample
+    // "data"
+    header.setUint8(36, 0x64);
+    header.setUint8(37, 0x61);
+    header.setUint8(38, 0x74);
+    header.setUint8(39, 0x61);
+    header.setUint32(40, pcmBytes.length, Endian.little);
+
+    final wavBytes = Uint8List(44 + pcmBytes.length);
+    wavBytes.setAll(0, header.buffer.asUint8List());
+    wavBytes.setAll(44, pcmBytes);
+    return wavBytes;
   }
 
   /// Stops any currently playing audio (both TTS and native audio).
