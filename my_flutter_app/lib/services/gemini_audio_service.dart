@@ -32,6 +32,9 @@ class GeminiAudioService {
   /// Called when audio PCM bytes arrive from the model.
   Function(Uint8List bytes)? onAudioChunk;
 
+  /// Called when text arrives from the model.
+  Function(String text)? onTextChunk;
+
   /// Called when model finishes generating a full turn.
   VoidCallback? onTurnComplete;
 
@@ -76,7 +79,7 @@ class GeminiAudioService {
             ]
           },
           'generation_config': {
-            'response_modalities': ['AUDIO'],
+            'response_modalities': ['TEXT', 'AUDIO'],
             'speech_config': {
               'voice_config': {
                 'prebuilt_voice_config': {
@@ -143,6 +146,12 @@ class GeminiAudioService {
                 if (b64 != null && b64.isNotEmpty) {
                   final bytes = base64Decode(b64);
                   onAudioChunk?.call(bytes);
+                }
+              }
+              if (partMap.containsKey('text')) {
+                final text = partMap['text'] as String?;
+                if (text != null && text.isNotEmpty) {
+                  onTextChunk?.call(text);
                 }
               }
             }

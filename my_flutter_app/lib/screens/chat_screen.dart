@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../services/gemini_service.dart';
+import '../services/gemini_audio_service.dart';
 import '../services/ollama_service.dart';
 import '../services/firestore_service.dart';
 import '../services/voice_service.dart';
@@ -31,6 +32,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Persistent Gemini service — keeps ChatSession alive between messages
   late final GeminiService _geminiService;
+  
+  GeminiAudioService? _audioService;
+  final List<int> _audioChunkBuffer = [];
+  String _streamingText = '';
+  bool _isStreaming = false;
 
   bool _isTyping = false;
   bool _showScrollButton = false;
@@ -47,6 +53,61 @@ class _ChatScreenState extends State<ChatScreen> {
     // Initialize persistent GeminiService with the current model
     final appState = context.read<AppState>();
     _geminiService = GeminiService(modelName: appState.selectedModel);
+    _initAudioServiceIfNeeded();
+  }
+
+  void _initAudioServiceIfNeeded() {
+    final appState = context.read<AppState>();
+    if (appState.selectedModel == 'gemini-2.5-flash' && appState.voiceEnabled) {
+      if (_audioService == null) {
+        _audioService = GeminiAudioService();
+        _audioService!.onAudioChunk = (bytes) {
+          _audioChunkBuffer.addAll(bytes);
+        };
+        _audioService!.onTextChunk = (text) {
+          if (mounted) {
+            setState(() {
+              _streamingText += text;
+            });
+            _scrollToBottom();
+          }
+        };
+        _audioService!.onTurnComplete = () async {
+          final user = context.read<AppState>().currentUser;
+          if (user != null && _streamingText.isNotEmpty) {
+            final aiMessage = Message(text: _streamingText, isUser: false);
+            await _firestoreService.saveMessage(user.uid, aiMessage);
+          }
+          if (mounted) {
+            setState(() {
+              _isStreaming = false;
+              _isTyping = false;
+            });
+            _inputFocus.requestFocus();
+          }
+          if (_audioChunkBuffer.isNotEmpty) {
+            final bytes = Uint8List.fromList(_audioChunkBuffer);
+            _audioChunkBuffer.clear();
+            if (mounted) setState(() => _isSpeaking = true);
+            await _voiceService.playPcmBytes(bytes);
+            if (mounted) setState(() => _isSpeaking = false);
+          }
+          _streamingText = '';
+        };
+        _audioService!.onError = (error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Audio Error: $error')));
+            setState(() {
+              _isStreaming = false;
+              _isTyping = false;
+            });
+          }
+        };
+        _audioService!.connect();
+      } else if (!_audioService!.isConnected) {
+        _audioService!.connect();
+      }
+    }
   }
 
   void _scrollListener() {
@@ -80,7 +141,23 @@ class _ChatScreenState extends State<ChatScreen> {
     final message = Message(text: userMessage, isUser: true);
     await _firestoreService.saveMessage(user.uid, message);
 
-    // Get AI Response
+    final voiceEnabled = appState.voiceEnabled;
+    
+    // Check if we should use Native Audio Dialog (WebSockets)
+    if (appState.selectedModel == 'gemini-2.5-flash' && voiceEnabled) {
+      _initAudioServiceIfNeeded();
+      if (_audioService != null) {
+        setState(() {
+          _isStreaming = true;
+          _streamingText = '';
+        });
+        _audioChunkBuffer.clear();
+        _audioService!.sendText(userMessage);
+        return; // The rest is handled by onTurnComplete
+      }
+    }
+
+    // Get AI Response for REST fallback
     String responseText;
     Uint8List? audioResponse;
 
@@ -90,7 +167,6 @@ class _ChatScreenState extends State<ChatScreen> {
         responseText = await ollamaService.sendMessage(userMessage, model: appState.cleanModelName);
       } else {
         // Use persistent GeminiService (keeps Miku's memory of the conversation)
-        final voiceEnabled = context.read<AppState>().voiceEnabled;
         final res = await _geminiService.sendMessage(userMessage, requestAudio: voiceEnabled);
         responseText = res.text;
         audioResponse = res.audioBytes;
@@ -131,7 +207,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputFocus.requestFocus();
 
     // Auto-voice if voice enabled
-    final voiceEnabled = context.read<AppState>().voiceEnabled;
     if (voiceEnabled) {
       final localeCode = context.read<AppState>().locale.languageCode;
       
@@ -240,8 +315,14 @@ class _ChatScreenState extends State<ChatScreen> {
                       controller: _scrollController,
                       padding: const EdgeInsets.only(
                           top: 96, bottom: 16, left: 4, right: 4),
-                      itemCount: messages.length,
+                      itemCount: messages.length + (_isStreaming ? 1 : 0),
                       itemBuilder: (context, index) {
+                        if (index == messages.length) {
+                          return MessageBubble(
+                              text: _streamingText,
+                              isUser: false,
+                              isError: false);
+                        }
                         final msg = messages[index];
                         final isError = msg.text.contains('❌') ||
                             msg.text.contains('⚠️');
