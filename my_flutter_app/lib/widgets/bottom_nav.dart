@@ -17,12 +17,12 @@ class BottomNav extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0A0A14) : scheme.surface,
+        color: isDark ? const Color(0xFF000000) : scheme.surface,
         border: Border(
           top: BorderSide(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.07)
-                : Colors.black.withValues(alpha: 0.06),
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.1),
           ),
         ),
       ),
@@ -32,7 +32,9 @@ class BottomNav extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: ThemeConstants.kBrandCyan.withValues(alpha: isDark ? 0.12 : 0.15),
+        indicatorColor: isDark 
+            ? Colors.white.withValues(alpha: 0.12)
+            : Colors.black.withValues(alpha: 0.08),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         animationDuration: ThemeConstants.kDurationMed,
         destinations: [
@@ -43,6 +45,7 @@ class BottomNav extends StatelessWidget {
             label: l10n.home,
             useLogo: true,
             currentIndex: currentIndex,
+            isDark: isDark,
           ),
           _dest(
             index: 1,
@@ -50,6 +53,7 @@ class BottomNav extends StatelessWidget {
             selectedIcon: Icons.chat_bubble_rounded,
             label: l10n.chat,
             currentIndex: currentIndex,
+            isDark: isDark,
           ),
           _dest(
             index: 2,
@@ -57,6 +61,7 @@ class BottomNav extends StatelessWidget {
             selectedIcon: Icons.person_rounded,
             label: l10n.profile,
             currentIndex: currentIndex,
+            isDark: isDark,
           ),
           _dest(
             index: 3,
@@ -64,6 +69,7 @@ class BottomNav extends StatelessWidget {
             selectedIcon: Icons.tune_rounded,
             label: l10n.settings,
             currentIndex: currentIndex,
+            isDark: isDark,
           ),
         ],
       ),
@@ -76,29 +82,32 @@ class BottomNav extends StatelessWidget {
     required IconData selectedIcon,
     required String label,
     required int currentIndex,
+    required bool isDark,
     bool useLogo = false,
   }) {
     final isSelected = currentIndex == index;
+    final activeColor = isDark ? Colors.white : Colors.black;
+    final inactiveColor = isDark ? Colors.white54 : Colors.black54;
 
     return NavigationDestination(
       icon: AnimatedScale(
         duration: ThemeConstants.kDurationFast,
-        scale: isSelected ? 1.15 : 1.0,
+        scale: isSelected ? 1.05 : 1.0,
         child: useLogo
             ? Logo01(
                 size: 26,
                 showText: false,
-                color: isSelected ? ThemeConstants.kBrandCyan : Colors.white38,
+                color: isSelected ? activeColor : inactiveColor,
               )
-            : Icon(isSelected ? selectedIcon : icon),
+            : Icon(isSelected ? selectedIcon : icon, color: isSelected ? activeColor : inactiveColor),
       ),
       selectedIcon: useLogo 
           ? Logo01(
               size: 28,
               showText: false,
-              color: ThemeConstants.kBrandCyan,
+              color: activeColor,
             )
-          : Icon(selectedIcon, color: ThemeConstants.kBrandCyan),
+          : Icon(selectedIcon, color: activeColor),
       label: label,
     );
   }

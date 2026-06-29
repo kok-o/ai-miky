@@ -1,29 +1,28 @@
 import 'package:flutter/material.dart';
 
 class ThemeConstants {
-  // Durations
-  static const kDurationFast = Duration(milliseconds: 180);
-  static const kDurationMed  = Duration(milliseconds: 350);
-  static const kDurationSlow = Duration(milliseconds: 700);
+  // Durations - Snappy Vercel style
+  static const kDurationFast = Duration(milliseconds: 150);
+  static const kDurationMed  = Duration(milliseconds: 250);
+  static const kDurationSlow = Duration(milliseconds: 400);
 
   // Curves
-  static const kCurveStandard   = Curves.easeInOutCubic;
-  static const kCurveEmphasized = Curves.elasticOut;
+  static const kCurveStandard   = Curves.easeOutCubic;
+  static const kCurveEmphasized = Curves.fastOutSlowIn;
 
-  // Brand — "01" logo palette: electric cyan + near-black
-  static const kBrandCyan   = Color(0xFF00E5FF); // electric cyan (logo stroke)
-  static const kBrandDark   = Color(0xFF0D0D12); // near-black background
-  static const kBrandSurface= Color(0xFF16161F); // slightly lighter surface
-  static const kPrimaryColor= Color(0xFF00E5FF); // same as cyan for Material seed
-  static const kAccentColor = Color(0xFF7B61FF); // soft violet accent
+  // Brand — Vercel Monochrome
+  static const kBrandCyan   = Color(0xFFFFFFFF); // Replaced with white for high contrast
+  static const kBrandDark   = Color(0xFF000000); // True black
+  static const kBrandSurface= Color(0xFF0A0A0A); // Vercel surface dark
+  static const kPrimaryColor= Color(0xFFFFFFFF);
+  static const kAccentColor = Color(0xFF666666); // Subtle gray
 
-  static const kGlassOpacity = 0.12;
-  static const kBlurSigma    = 12.0;
+  static const kGlassOpacity = 0.05;
+  static const kBlurSigma    = 8.0;
 
-  // Gradient for backgrounds
+  // Gradient for backgrounds (flat monochrome now)
   static const List<Color> kBgGradient = [
-    Color(0xFF0D0D12),
-    Color(0xFF111120),
-    Color(0xFF0A1628),
+    Color(0xFF000000),
+    Color(0xFF000000),
   ];
 }

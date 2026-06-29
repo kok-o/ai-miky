@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
 import '../theme/theme_constants.dart';
 
@@ -35,7 +36,7 @@ class _MessageBubbleState extends State<MessageBubble>
     );
     _pulseCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
     );
     if (widget.isError) _shakeCtrl.forward();
     if (widget.isStreaming) _pulseCtrl.repeat(reverse: true);
@@ -67,17 +68,23 @@ class _MessageBubbleState extends State<MessageBubble>
     // Colors
     final Color bg;
     final Color textColor;
+    final Border? border;
+    
     if (widget.isError) {
       bg        = scheme.errorContainer;
       textColor = scheme.onErrorContainer;
+      border    = null;
     } else if (widget.isUser) {
-      bg        = isDark ? ThemeConstants.kBrandCyan : scheme.primary;
-      textColor = isDark ? ThemeConstants.kBrandDark : scheme.onPrimary;
+      bg        = isDark ? Colors.white : Colors.black;
+      textColor = isDark ? Colors.black : Colors.white;
+      border    = null;
     } else {
-      bg        = isDark
-          ? Colors.white.withValues(alpha: 0.07)
-          : scheme.surfaceContainerHighest;
-      textColor = isDark ? Colors.white.withValues(alpha: 0.9) : scheme.onSurface;
+      bg        = Colors.transparent;
+      textColor = isDark ? Colors.white : Colors.black;
+      border    = Border.all(
+        color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.12),
+        width: 1,
+      );
     }
 
     return AnimatedBuilder(
@@ -92,34 +99,33 @@ class _MessageBubbleState extends State<MessageBubble>
             widget.isUser ? Alignment.centerRight : Alignment.centerLeft,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.78,
+            maxWidth: MediaQuery.of(context).size.width * 0.85,
           ),
             child: AnimatedBuilder(
               animation: _pulseCtrl,
               builder: (context, child) {
                 return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 12),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: bg,
+                    border: border,
                     borderRadius: BorderRadius.only(
-                      topLeft:     const Radius.circular(20),
-                      topRight:    const Radius.circular(20),
-                      bottomLeft:  Radius.circular(widget.isUser ? 20 : 5),
-                      bottomRight: Radius.circular(widget.isUser ? 5 : 20),
+                      topLeft:     const Radius.circular(12),
+                      topRight:    const Radius.circular(12),
+                      bottomLeft:  Radius.circular(widget.isUser ? 12 : 4),
+                      bottomRight: Radius.circular(widget.isUser ? 4 : 12),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: widget.isUser && isDark
-                            ? ThemeConstants.kBrandCyan.withValues(alpha: 0.15)
-                            : (widget.isStreaming 
-                                ? ThemeConstants.kBrandCyan.withValues(alpha: 0.2 + (_pulseCtrl.value * 0.4))
-                                : Colors.black.withValues(alpha: 0.07)),
-                        blurRadius: widget.isStreaming ? 12 + (_pulseCtrl.value * 12) : 12,
-                        spreadRadius: widget.isStreaming ? (_pulseCtrl.value * 2) : 0,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+                    // Minimalist Vercel shadow only for streaming state
+                    boxShadow: widget.isStreaming 
+                        ? [
+                            BoxShadow(
+                              color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05 + (_pulseCtrl.value * 0.05)),
+                              blurRadius: 8 + (_pulseCtrl.value * 4),
+                              spreadRadius: _pulseCtrl.value * 2,
+                            )
+                          ]
+                        : [],
                   ),
                   child: child,
                 );
@@ -127,10 +133,10 @@ class _MessageBubbleState extends State<MessageBubble>
               child: widget.isUser || widget.isError
                   ? Text(
                     widget.text,
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 15,
                       color: textColor,
-                      height: 1.45,
+                      height: 1.5,
                       fontWeight:
                           widget.isUser ? FontWeight.w500 : FontWeight.normal,
                     ),
@@ -139,23 +145,35 @@ class _MessageBubbleState extends State<MessageBubble>
                     data: widget.text,
                     selectable: true,
                     styleSheet: MarkdownStyleSheet(
-                      p: TextStyle(
+                      p: GoogleFonts.inter(
                         fontSize: 15,
                         color: textColor,
-                        height: 1.45,
+                        height: 1.5,
                       ),
-                      strong: TextStyle(
+                      strong: GoogleFonts.inter(
                         fontSize: 15,
                         color: textColor,
-                        height: 1.45,
-                        fontWeight: FontWeight.bold,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
                       ),
-                      listBullet: TextStyle(
+                      listBullet: GoogleFonts.inter(
                         fontSize: 15,
                         color: textColor,
-                        height: 1.45,
+                        height: 1.5,
                       ),
-                      // Markdown uses default scaling, but we lock the sizes to match the user text
+                      code: GoogleFonts.firaCode(
+                        fontSize: 13,
+                        backgroundColor: isDark ? const Color(0xFF111111) : const Color(0xFFF5F5F5),
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                      codeblockPadding: const EdgeInsets.all(12),
+                      codeblockDecoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF111111) : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1),
+                        ),
+                      ),
                     ),
                   ),
           ),

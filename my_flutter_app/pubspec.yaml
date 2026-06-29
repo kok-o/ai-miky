@@ -52,6 +52,7 @@ dependencies:
   web_socket_channel: ^3.0.1
   audioplayers: ^6.1.0
   flutter_markdown: ^0.7.7+1
+  google_fonts: ^6.2.1
   google_genai: ^0.0.1+1
 
 dev_dependencies:

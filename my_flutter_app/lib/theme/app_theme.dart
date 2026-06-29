@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'theme_constants.dart';
 
 class AppTheme {
@@ -11,21 +12,21 @@ class AppTheme {
       InputDecorationTheme(
         filled: true,
         fillColor: fill,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08), 
+            color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.12),
             width: 1
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: primary, width: 2),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: isDark ? Colors.white : Colors.black, width: 1.5),
         ),
         labelStyle: TextStyle(
           color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.5)
@@ -43,16 +44,17 @@ class AppTheme {
       seedColor: ThemeConstants.kPrimaryColor,
       brightness: Brightness.dark,
     ).copyWith(
-      primary:            ThemeConstants.kBrandCyan,
-      onPrimary:          ThemeConstants.kBrandDark,
+      primary:            Colors.white,
+      onPrimary:          Colors.black,
       secondary:          ThemeConstants.kAccentColor,
       onSecondary:        Colors.white,
       surface:            ThemeConstants.kBrandSurface,
       onSurface:          Colors.white,
-      surfaceContainerHighest: const Color(0xFF1E1E2E),
+      surfaceContainerHighest: const Color(0xFF111111),
       outline:            Colors.white12,
     ),
     scaffoldBackgroundColor: ThemeConstants.kBrandDark,
+    textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
     typography: Typography.material2021(),
 
     // AppBar
@@ -62,20 +64,19 @@ class AppTheme {
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       systemOverlayStyle: SystemUiOverlayStyle.light,
-      titleTextStyle: const TextStyle(
-        fontFamily: 'Outfit',
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
+      titleTextStyle: GoogleFonts.inter(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
         color: Colors.white,
-        letterSpacing: -0.3,
+        letterSpacing: -0.5,
       ),
     ),
 
-    // Cards — glassmorphism feel
+    // Cards
     cardTheme: CardThemeData(
       elevation: 0,
-      shape: _rounded(20),
-      color: Colors.white.withValues(alpha: 0.05),
+      shape: _rounded(12),
+      color: ThemeConstants.kBrandSurface,
       shadowColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       margin: EdgeInsets.zero,
@@ -84,19 +85,19 @@ class AppTheme {
     // Buttons
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: ThemeConstants.kBrandCyan,
-        foregroundColor: ThemeConstants.kBrandDark,
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-        shape: _rounded(16),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.3),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        shape: _rounded(8),
+        textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: -0.3),
         elevation: 0,
       ),
     ),
 
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: ThemeConstants.kBrandCyan,
-        textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        foregroundColor: Colors.white,
+        textStyle: GoogleFonts.inter(fontWeight: FontWeight.w500),
       ),
     ),
 
@@ -108,30 +109,30 @@ class AppTheme {
 
     // Inputs
     inputDecorationTheme: _inputTheme(
-      Colors.white.withValues(alpha: 0.06),
-      ThemeConstants.kBrandCyan,
+      Colors.transparent,
+      Colors.white,
       true, // isDark
     ),
 
     // Navigation bar
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: ThemeConstants.kBrandDark,
-      indicatorColor: ThemeConstants.kBrandCyan.withValues(alpha: 0.15),
+      indicatorColor: Colors.white.withValues(alpha: 0.1),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return const IconThemeData(color: ThemeConstants.kBrandCyan, size: 24);
+          return const IconThemeData(color: Colors.white, size: 24);
         }
         return IconThemeData(color: Colors.white.withValues(alpha: 0.5), size: 22);
       }),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return const TextStyle(
-            color: ThemeConstants.kBrandCyan,
+          return GoogleFonts.inter(
+            color: Colors.white,
             fontWeight: FontWeight.w600,
             fontSize: 12,
           );
         }
-        return TextStyle(
+        return GoogleFonts.inter(
           color: Colors.white.withValues(alpha: 0.5),
           fontSize: 12,
         );
@@ -143,41 +144,41 @@ class AppTheme {
     // Snackbar
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: const Color(0xFF1E1E2E),
-      contentTextStyle: const TextStyle(color: Colors.white),
-      shape: _rounded(14),
-      elevation: 12,
+      backgroundColor: const Color(0xFF111111),
+      contentTextStyle: GoogleFonts.inter(color: Colors.white),
+      shape: _rounded(8),
+      elevation: 4,
     ),
 
     // Divider
     dividerTheme: DividerThemeData(
-      color: Colors.white.withValues(alpha: 0.08),
+      color: Colors.white.withValues(alpha: 0.12),
       space: 1,
     ),
 
     // ListTile
     listTileTheme: ListTileThemeData(
-      shape: _rounded(12),
+      shape: _rounded(8),
       tileColor: Colors.transparent,
       textColor: Colors.white,
-      iconColor: ThemeConstants.kBrandCyan,
+      iconColor: Colors.white,
     ),
 
     // Switch
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((s) =>
-          s.contains(WidgetState.selected) ? ThemeConstants.kBrandCyan : Colors.white54),
+          s.contains(WidgetState.selected) ? Colors.black : Colors.white54),
       trackColor: WidgetStateProperty.resolveWith((s) =>
-          s.contains(WidgetState.selected)
-              ? ThemeConstants.kBrandCyan.withValues(alpha: 0.3)
-              : Colors.white12),
+          s.contains(WidgetState.selected) ? Colors.white : Colors.white12),
+      trackOutlineColor: WidgetStateProperty.resolveWith((s) => Colors.transparent),
     ),
 
     // FAB
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: ThemeConstants.kBrandCyan,
-      foregroundColor: ThemeConstants.kBrandDark,
-      elevation: 4,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
     ),
 
     // Page transitions
@@ -193,39 +194,90 @@ class AppTheme {
   // ── LIGHT theme ─────────────────────────────────────────────────────────────
   static final ThemeData lightTheme = ThemeData(
     useMaterial3: true,
+    brightness: Brightness.light,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: ThemeConstants.kPrimaryColor,
+      seedColor: Colors.black,
       brightness: Brightness.light,
     ).copyWith(
-      primary:   const Color(0xFF0068D6),
-      secondary: const Color(0xFF7B61FF),
-      surface:   const Color(0xFFF6F7FC),
+      primary:   Colors.black,
+      onPrimary: Colors.white,
+      secondary: const Color(0xFF666666),
+      surface:   const Color(0xFFFAFAFA),
       outline:   Colors.black12,
     ),
-    scaffoldBackgroundColor: const Color(0xFFF0F2F8),
+    scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+    textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
     typography: Typography.material2021(),
+    
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.white.withValues(alpha: 0.85),
+      foregroundColor: Colors.black,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      titleTextStyle: GoogleFonts.inter(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: Colors.black,
+        letterSpacing: -0.5,
+      ),
+    ),
+
     cardTheme: CardThemeData(
       elevation: 0,
-      shape: _rounded(20),
-      color: Colors.white,
-      shadowColor: Colors.black12,
+      shape: _rounded(12),
+      color: const Color(0xFFFAFAFA),
+      shadowColor: Colors.transparent,
+      margin: EdgeInsets.zero,
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-        shape: _rounded(16),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        shape: _rounded(8),
+        textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: -0.3),
+        elevation: 0,
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.black,
+        textStyle: GoogleFonts.inter(fontWeight: FontWeight.w500),
       ),
     ),
     inputDecorationTheme: _inputTheme(
-      Colors.black.withValues(alpha: 0.04),
-      const Color(0xFF0068D6),
+      Colors.transparent,
+      Colors.black,
       false, // isDark
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      shape: _rounded(14),
-      elevation: 8,
+      shape: _rounded(8),
+      elevation: 4,
+    ),
+    dividerTheme: DividerThemeData(
+      color: Colors.black.withValues(alpha: 0.12),
+      space: 1,
+    ),
+    listTileTheme: ListTileThemeData(
+      shape: _rounded(8),
+      tileColor: Colors.transparent,
+      textColor: Colors.black,
+      iconColor: Colors.black,
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((s) =>
+          s.contains(WidgetState.selected) ? Colors.white : Colors.black54),
+      trackColor: WidgetStateProperty.resolveWith((s) =>
+          s.contains(WidgetState.selected) ? Colors.black : Colors.black12),
+      trackOutlineColor: WidgetStateProperty.resolveWith((s) => Colors.transparent),
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
     ),
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
