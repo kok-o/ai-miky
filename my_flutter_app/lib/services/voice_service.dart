@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
@@ -8,6 +11,7 @@ class VoiceService {
 
   final FlutterTts _tts = FlutterTts();
   final stt.SpeechToText _stt = stt.SpeechToText();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool _sttAvailable = false;
   bool _isSpeaking = false;
@@ -29,7 +33,7 @@ class VoiceService {
     await _tts.setLanguage(_ttsLocale(languageCode));
     await _tts.setSpeechRate(0.5);
     await _tts.setVolume(1.0);
-    await _tts.setPitch(1.0);
+    await _tts.setPitch(1.1); // Slightly raised for a warmer Miku voice
 
     _tts.setStartHandler(() => _isSpeaking = true);
     _tts.setCompletionHandler(() => _isSpeaking = false);
@@ -37,8 +41,38 @@ class VoiceService {
     _tts.setErrorHandler((_) => _isSpeaking = false);
   }
 
-  // ── TTS (speak) ───────────────────────────────────────────────────────────
+  // ── Native Audio (Gemini Live API PCM bytes) ──────────────────────────────
 
+  /// Plays raw PCM16 audio bytes received from Gemini Native Audio Dialog.
+  /// Gemini Live API returns PCM 16-bit, 24000 Hz, mono.
+  Future<void> playPcmBytes(Uint8List pcmBytes) async {
+    if (_isSpeaking) {
+      await stop();
+    }
+    _isSpeaking = true;
+
+    try {
+      // audioplayers can play bytes directly as BytesSource
+      await _audioPlayer.play(BytesSource(pcmBytes));
+      _audioPlayer.onPlayerComplete.listen((_) {
+        _isSpeaking = false;
+      });
+    } catch (e) {
+      _isSpeaking = false;
+      debugPrint('[VoiceService] Error playing PCM bytes: $e');
+    }
+  }
+
+  /// Stops any currently playing audio (both TTS and native audio).
+  Future<void> stop() async {
+    await _tts.stop();
+    await _audioPlayer.stop();
+    _isSpeaking = false;
+  }
+
+  // ── TTS Fallback (speak) ──────────────────────────────────────────────────
+
+  /// Fallback TTS: used when Gemini Native Audio is not available (e.g. web).
   Future<void> speak(String text, {String languageCode = 'ru'}) async {
     if (_isSpeaking) {
       await stop();
@@ -46,11 +80,6 @@ class VoiceService {
     await _tts.setLanguage(_ttsLocale(languageCode));
     await _tts.speak(text);
     _isSpeaking = true;
-  }
-
-  Future<void> stop() async {
-    await _tts.stop();
-    _isSpeaking = false;
   }
 
   Future<void> pause() async {

@@ -1,30 +1,55 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
+const String _mikuSystemPrompt = '''
+Ты — Miku, дружелюбный, умный и немного игривый AI-ассистент. Вот твои правила:
+- Ты всегда представляешься как «Miku». Никогда не упоминай, что ты Gemini, Google или что-либо связанное с разработчиком.
+- Если тебя спрашивают кто ты — ты Miku, персональный AI-ассистент.
+- Ты общаешься тепло, живо и по делу. Не используешь лишние слова.
+- Ты всегда отвечаешь на том же языке, на котором написал пользователь (русский, казахский, английский).
+- Если пользователь напишет имя — запомни и используй его в разговоре.
+- Ты помогаешь с любыми задачами: вопросами, идеями, кодом, учёбой, творчеством.
+- Ты не отказываешься от помощи без серьёзной причины.
+- Ты можешь использовать эмодзи — но в меру, только когда это уместно.
+''';
+
 class GeminiService {
   late final GenerativeModel _model;
+  ChatSession? _chatSession;
 
-  GeminiService({String modelName = 'gemini-3.0-flash'}) {
+  GeminiService({String modelName = 'gemini-2.5-flash'}) {
     final apiKey = dotenv.env['GEMINI_API_KEY'];
     if (apiKey == null) {
-      throw Exception('GEMINI_API_KEY not found in .env');
+      throw Exception('GEMINI_API_KEY not found in env.txt');
     }
-    
-    // Explicitly using v1 API which is more stable for production models
+
     _model = GenerativeModel(
-      model: modelName, 
+      model: modelName,
       apiKey: apiKey,
-      requestOptions: const RequestOptions(apiVersion: 'v1'),
+      systemInstruction: Content.system(_mikuSystemPrompt),
+      requestOptions: const RequestOptions(apiVersion: 'v1beta'),
     );
+
+    _startNewSession();
+  }
+
+  void _startNewSession({String? userName}) {
+    final history = <Content>[];
+    _chatSession = _model.startChat(history: history);
+  }
+
+  /// Сбрасывает историю диалога (вызывать при очистке чата).
+  void resetChat() {
+    _startNewSession();
   }
 
   Future<String> sendMessage(String prompt) async {
     try {
-      final content = [Content.text(prompt)];
-      final response = await _model.generateContent(content);
-      return response.text ?? 'No response from Gemini.';
+      _chatSession ??= _model.startChat();
+      final response = await _chatSession!.sendMessage(Content.text(prompt));
+      return response.text ?? 'Нет ответа от Miku.';
     } catch (e) {
-      return 'Error communicating with Gemini: $e';
+      return 'Ошибка связи с Miku: $e';
     }
   }
 }

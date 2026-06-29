@@ -1,8 +1,11 @@
 import 'dart:ui';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../services/gemini_service.dart';
+import '../services/gemini_audio_service.dart';
 import '../services/ollama_service.dart';
 import '../services/firestore_service.dart';
 import '../services/voice_service.dart';
@@ -27,6 +30,13 @@ class _ChatScreenState extends State<ChatScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final VoiceService _voiceService = VoiceService();
 
+  // Persistent Gemini service — keeps ChatSession alive between messages
+  late final GeminiService _geminiService;
+
+  // Native audio service (Gemini Live API) — only for non-web platforms
+  GeminiAudioService? _audioService;
+  final List<Uint8List> _audioChunkBuffer = [];
+
   bool _isTyping = false;
   bool _showScrollButton = false;
   bool _isListening = false;
@@ -38,6 +48,37 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollController.addListener(_scrollListener);
     _voiceService.initStt();
     _voiceService.initTts();
+    // Initialize persistent GeminiService with the current model
+    final appState = context.read<AppState>();
+    _geminiService = GeminiService(modelName: appState.selectedModel);
+
+    // Initialize native audio for non-web platforms
+    if (!kIsWeb) {
+      _audioService = GeminiAudioService();
+      _audioService!.onAudioChunk = (bytes) {
+        _audioChunkBuffer.add(bytes);
+      };
+      _audioService!.onTurnComplete = () {
+        if (_audioChunkBuffer.isNotEmpty) {
+          // Combine all chunks into a single buffer and play
+          final totalLength = _audioChunkBuffer.fold<int>(0, (sum, b) => sum + b.length);
+          final combined = Uint8List(totalLength);
+          var offset = 0;
+          for (final chunk in _audioChunkBuffer) {
+            combined.setRange(offset, offset + chunk.length, chunk);
+            offset += chunk.length;
+          }
+          _audioChunkBuffer.clear();
+          _voiceService.playPcmBytes(combined);
+          if (mounted) setState(() => _isSpeaking = true);
+        }
+      };
+      _audioService!.onError = (err) {
+        debugPrint('[ChatScreen] AudioService error: $err');
+        // Gracefully fallback — voice will use flutter_tts instead
+      };
+      _audioService!.connect();
+    }
   }
 
   void _scrollListener() {
@@ -78,8 +119,8 @@ class _ChatScreenState extends State<ChatScreen> {
         final ollamaService = OllamaService(baseUrl: appState.ollamaBaseUrl);
         response = await ollamaService.sendMessage(userMessage, model: appState.cleanModelName);
       } else {
-        final geminiService = GeminiService(modelName: appState.selectedModel);
-        response = await geminiService.sendMessage(userMessage);
+        // Use persistent GeminiService (keeps Miku's memory of the conversation)
+        response = await _geminiService.sendMessage(userMessage);
       }
     } catch (e) {
       if (!mounted) return;
@@ -117,13 +158,22 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
     _inputFocus.requestFocus();
 
-    // Auto-TTS if voice enabled
+    // Auto-voice if voice enabled
     final voiceEnabled = context.read<AppState>().voiceEnabled;
     if (voiceEnabled) {
       final localeCode = context.read<AppState>().locale.languageCode;
       setState(() => _isSpeaking = true);
-      await _voiceService.speak(response, languageCode: localeCode);
-      setState(() => _isSpeaking = false);
+
+      if (!kIsWeb && _audioService != null && _audioService!.isConnected) {
+        // ✨ Use Gemini Native Audio Dialog (human-quality voice)
+        _audioChunkBuffer.clear();
+        _audioService!.sendText(response);
+        // _isSpeaking will be set to false in onTurnComplete after playback
+      } else {
+        // Fallback: flutter_tts (for web or if native audio not connected)
+        await _voiceService.speak(response, languageCode: localeCode);
+        setState(() => _isSpeaking = false);
+      }
     }
   }
 
@@ -132,6 +182,8 @@ class _ChatScreenState extends State<ChatScreen> {
     if (user != null) {
       await _firestoreService.clearChat(user.uid);
     }
+    // Reset Miku's memory when the user clears the chat
+    _geminiService.resetChat();
   }
 
   @override
@@ -291,6 +343,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputFocus.dispose();
     _scrollController.dispose();
     _voiceService.stop();
+    _audioService?.disconnect();
     super.dispose();
   }
 

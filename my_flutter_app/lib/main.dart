@@ -20,7 +20,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load(fileName: "env.txt");
   } catch (e) {
     debugPrint("DotEnv load warning: $e");
   }
