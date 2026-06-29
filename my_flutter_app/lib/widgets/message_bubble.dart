@@ -7,12 +7,14 @@ class MessageBubble extends StatefulWidget {
   final String text;
   final bool isUser;
   final bool isError;
+  final bool isStreaming;
 
   const MessageBubble({
     super.key,
     required this.text,
     required this.isUser,
     this.isError = false,
+    this.isStreaming = false,
   });
 
   @override
@@ -20,8 +22,9 @@ class MessageBubble extends StatefulWidget {
 }
 
 class _MessageBubbleState extends State<MessageBubble>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _shakeCtrl;
+  late AnimationController _pulseCtrl;
 
   @override
   void initState() {
@@ -30,12 +33,29 @@ class _MessageBubbleState extends State<MessageBubble>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
     if (widget.isError) _shakeCtrl.forward();
+    if (widget.isStreaming) _pulseCtrl.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(MessageBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isStreaming && !oldWidget.isStreaming) {
+      _pulseCtrl.repeat(reverse: true);
+    } else if (!widget.isStreaming && oldWidget.isStreaming) {
+      _pulseCtrl.stop();
+      _pulseCtrl.reset();
+    }
   }
 
   @override
   void dispose() {
     _shakeCtrl.dispose();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -74,29 +94,38 @@ class _MessageBubbleState extends State<MessageBubble>
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.78,
           ),
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.only(
-                topLeft:     const Radius.circular(20),
-                topRight:    const Radius.circular(20),
-                bottomLeft:  Radius.circular(widget.isUser ? 20 : 5),
-                bottomRight: Radius.circular(widget.isUser ? 5 : 20),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: widget.isUser && isDark
-                      ? ThemeConstants.kBrandCyan.withValues(alpha: 0.15)
-                      : Colors.black.withValues(alpha: 0.07),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: widget.isUser || widget.isError
-                ? Text(
+            child: AnimatedBuilder(
+              animation: _pulseCtrl,
+              builder: (context, child) {
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: BorderRadius.only(
+                      topLeft:     const Radius.circular(20),
+                      topRight:    const Radius.circular(20),
+                      bottomLeft:  Radius.circular(widget.isUser ? 20 : 5),
+                      bottomRight: Radius.circular(widget.isUser ? 5 : 20),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.isUser && isDark
+                            ? ThemeConstants.kBrandCyan.withValues(alpha: 0.15)
+                            : (widget.isStreaming 
+                                ? ThemeConstants.kBrandCyan.withValues(alpha: 0.2 + (_pulseCtrl.value * 0.4))
+                                : Colors.black.withValues(alpha: 0.07)),
+                        blurRadius: widget.isStreaming ? 12 + (_pulseCtrl.value * 12) : 12,
+                        spreadRadius: widget.isStreaming ? (_pulseCtrl.value * 2) : 0,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: child,
+                );
+              },
+              child: widget.isUser || widget.isError
+                  ? Text(
                     widget.text,
                     style: TextStyle(
                       fontSize: 15,

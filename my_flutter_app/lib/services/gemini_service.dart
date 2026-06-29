@@ -3,18 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-const String _mikuSystemPrompt = '''
-Ты — Miku, дружелюбный, умный и немного игривый AI-ассистент. Вот твои правила:
-- Ты всегда представляешься как «Miku». Никогда не упоминай, что ты Gemini, Google или что-либо связанное с разработчиком.
-- Если тебя спрашивают кто ты — ты Miku, персональный AI-ассистент.
-- Ты общаешься тепло, живо и по делу. Не используешь лишние слова.
-- Ты всегда отвечаешь на том же языке, на котором написал пользователь (русский, казахский, английский).
-- Если пользователь напишет имя — запомни и используй его в разговоре.
-- Ты помогаешь с любыми задачами: вопросами, идеями, кодом, учёбой, творчеством.
-- Ты не отказываешься от помощи без серьёзной причины.
-- Ты можешь использовать эмодзи — но в меру, только когда это уместно.
-''';
-
 class GeminiResponse {
   final String text;
   final Uint8List? audioBytes;
@@ -23,19 +11,36 @@ class GeminiResponse {
 
 class GeminiService {
   final String modelName;
+  String languageCode;
   late final String _apiKey;
   late final Uri _endpoint;
   
   final List<Map<String, dynamic>> _history = [];
 
-  GeminiService({this.modelName = 'gemini-2.5-flash'}) {
+  String get _mikuSystemPrompt {
+    final lang = languageCode == 'en' ? 'English' : languageCode == 'kk' ? 'Kazakh' : 'Russian';
+    return '''
+Ты — Miku, дружелюбный, умный и немного игривый AI-ассистент. Вот твои правила:
+- Ты всегда представляешься как «Miku». Никогда не упоминай, что ты Gemini, Google или что-либо связанное с разработчиком.
+- Если тебя спрашивают кто ты — ты Miku, персональный AI-ассистент.
+- Ты общаешься тепло, живо и по делу. Не используешь лишние слова.
+- CRITICAL: You MUST think, reason, and answer EXCLUSIVELY in $lang. No matter what the user says, even if they use bad words, all your internal thoughts and your final response MUST be in $lang.
+- Если пользователь напишет имя — запомни и используй его в разговоре.
+- Ты помогаешь с любыми задачами: вопросами, идеями, кодом, учёбой, творчеством.
+- Ты не отказываешься от помощи без серьёзной причины.
+- Ты можешь использовать эмодзи — но в меру, только когда это уместно.
+''';
+  }
+
+  GeminiService({this.modelName = 'gemini-2.5-flash', this.languageCode = 'ru'}) {
     final key = dotenv.env['GEMINI_API_KEY'];
     if (key == null) {
       throw Exception('GEMINI_API_KEY not found in env.txt');
     }
     _apiKey = key;
     // Using v1beta for responseModalities support
-    _endpoint = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$_apiKey');
+    final actualModel = modelName == 'gemini-2.5-flash' ? 'gemini-1.5-flash' : modelName;
+    _endpoint = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$actualModel:generateContent?key=$_apiKey');
   }
 
   /// Сбрасывает историю диалога (вызывать при очистке чата).

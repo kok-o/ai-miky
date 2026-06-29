@@ -52,15 +52,18 @@ class _ChatScreenState extends State<ChatScreen> {
     _voiceService.initTts();
     // Initialize persistent GeminiService with the current model
     final appState = context.read<AppState>();
-    _geminiService = GeminiService(modelName: appState.selectedModel);
+    _geminiService = GeminiService(
+      modelName: appState.selectedModel,
+      languageCode: appState.locale.languageCode,
+    );
     _initAudioServiceIfNeeded();
   }
 
-  void _initAudioServiceIfNeeded() {
+  Future<void> _initAudioServiceIfNeeded() async {
     final appState = context.read<AppState>();
     if (appState.selectedModel == 'gemini-2.5-flash' && appState.voiceEnabled) {
       if (_audioService == null) {
-        _audioService = GeminiAudioService();
+        _audioService = GeminiAudioService(languageCode: appState.locale.languageCode);
         _audioService!.onAudioChunk = (bytes) {
           _audioChunkBuffer.addAll(bytes);
         };
@@ -73,9 +76,14 @@ class _ChatScreenState extends State<ChatScreen> {
           }
         };
         _audioService!.onTurnComplete = () async {
-          final user = context.read<AppState>().currentUser;
-          if (user != null && _streamingText.isNotEmpty) {
-            final aiMessage = Message(text: _streamingText, isUser: false);
+          final appState = context.read<AppState>();
+          final user = appState.currentUser;
+          if (user != null) {
+            String placeholder = '🎤 (Voice response)';
+            if (appState.locale.languageCode == 'ru') placeholder = '🎤 (Голосовой ответ)';
+            if (appState.locale.languageCode == 'kk') placeholder = '🎤 (Дауыстық жауап)';
+            final textToSave = _streamingText.isNotEmpty ? _streamingText : placeholder;
+            final aiMessage = Message(text: textToSave, isUser: false);
             await _firestoreService.saveMessage(user.uid, aiMessage);
           }
           if (mounted) {
@@ -103,9 +111,9 @@ class _ChatScreenState extends State<ChatScreen> {
             });
           }
         };
-        _audioService!.connect();
+        await _audioService!.connect();
       } else if (!_audioService!.isConnected) {
-        _audioService!.connect();
+        await _audioService!.connect();
       }
     }
   }
@@ -118,13 +126,26 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _sendMessage() async {
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+  }
+
+  Future<void> _sendMessage() async {
     final userMessage = _controller.text.trim();
     if (userMessage.isEmpty) return;
 
     final appState = context.read<AppState>();
     final user = appState.currentUser;
-
     if (user == null) {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,6 +153,9 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       return;
     }
+
+    // Sync language code in case it changed in settings
+    _geminiService.languageCode = appState.locale.languageCode;
 
     _controller.clear();
     setState(() => _isTyping = true);
@@ -145,7 +169,7 @@ class _ChatScreenState extends State<ChatScreen> {
     
     // Check if we should use Native Audio Dialog (WebSockets)
     if (appState.selectedModel == 'gemini-2.5-flash' && voiceEnabled) {
-      _initAudioServiceIfNeeded();
+      await _initAudioServiceIfNeeded();
       if (_audioService != null) {
         setState(() {
           _isStreaming = true;
@@ -318,9 +342,14 @@ class _ChatScreenState extends State<ChatScreen> {
                       itemCount: messages.length + (_isStreaming ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (index == messages.length) {
+                          final appState = context.read<AppState>();
+                          String placeholder = '🎤 (Voice response...)';
+                          if (appState.locale.languageCode == 'ru') placeholder = '🎤 (Голосовой ответ...)';
+                          if (appState.locale.languageCode == 'kk') placeholder = '🎤 (Дауыстық жауап...)';
                           return MessageBubble(
-                              text: _streamingText,
+                              text: _streamingText.isNotEmpty ? _streamingText : placeholder,
                               isUser: false,
+                              isStreaming: true,
                               isError: false);
                         }
                         final msg = messages[index];
@@ -448,16 +477,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    });
-  }
+
 }
 
 class _InputBar extends StatefulWidget {
@@ -485,15 +505,39 @@ class _InputBar extends StatefulWidget {
   State<_InputBar> createState() => _InputBarState();
 }
 
-class _InputBarState extends State<_InputBar> {
+class _InputBarState extends State<_InputBar> with SingleTickerProviderStateMixin {
   bool _isFocused = false;
+  late AnimationController _micPulseCtrl;
 
   @override
   void initState() {
     super.initState();
+    _micPulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    if (widget.isListening) _micPulseCtrl.repeat(reverse: true);
+    
     widget.focusNode.addListener(() {
       setState(() => _isFocused = widget.focusNode.hasFocus);
     });
+  }
+
+  @override
+  void didUpdateWidget(_InputBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isListening && !oldWidget.isListening) {
+      _micPulseCtrl.repeat(reverse: true);
+    } else if (!widget.isListening && oldWidget.isListening) {
+      _micPulseCtrl.stop();
+      _micPulseCtrl.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _micPulseCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -575,9 +619,27 @@ class _InputBarState extends State<_InputBar> {
               ),
             ),
           if (!widget.isSpeaking)
-            AnimatedScale(
-              scale: widget.enabled ? (widget.isListening ? 1.15 : 1.0) : 0.85,
-              duration: ThemeConstants.kDurationFast,
+            AnimatedBuilder(
+              animation: _micPulseCtrl,
+              builder: (context, child) {
+                final scale = widget.enabled ? (widget.isListening ? 1.05 + (_micPulseCtrl.value * 0.15) : 1.0) : 0.85;
+                return Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: widget.isListening ? [
+                        BoxShadow(
+                          color: Colors.redAccent.withValues(alpha: 0.3 + (_micPulseCtrl.value * 0.4)),
+                          blurRadius: 10 + (_micPulseCtrl.value * 15),
+                          spreadRadius: _micPulseCtrl.value * 4,
+                        )
+                      ] : [],
+                    ),
+                    child: child,
+                  ),
+                );
+              },
               child: IconButton.filled(
                 onPressed: widget.enabled ? widget.onVoice : null,
                 icon: Icon(widget.isListening ? Icons.mic_rounded : Icons.mic_none_rounded, size: 20),

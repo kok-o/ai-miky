@@ -5,23 +5,28 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-/// Miku system instruction — same personality injected into audio sessions.
-const String _mikuSystemPromptAudio = '''
-Ты — Miku, дружелюбный, умный и немного игривый AI-ассистент.
-- Ты всегда представляешься как Miku. Никогда не упоминай Gemini или Google.
-- Общаешься тепло, живо и кратко. Используй тот же язык, что и пользователь.
-- Ты помогаешь с любыми задачами: вопросами, идеями, кодом, учёбой.
-- Отвечай голосом — кратко и по делу, без лишних слов.
-''';
-
-/// Service for Gemini 2.5 Flash Native Audio Dialog via Live API (WebSocket).
-/// Sends text, receives audio chunks (PCM16 / base64).
 class GeminiAudioService {
+  final String languageCode;
+
+  GeminiAudioService({this.languageCode = 'ru'});
+
+  String get _mikuSystemPromptAudio {
+    final lang = languageCode == 'en' ? 'English' : languageCode == 'kk' ? 'Kazakh' : 'Russian';
+    return '''
+You are Miku, a friendly, smart, and slightly playful AI assistant.
+- You always introduce yourself as Miku. Never mention Gemini or Google.
+- Communicate warmly, lively, and concisely.
+- ALWAYS respond in the following language: $lang. This is a strict requirement.
+- You help with any tasks: questions, ideas, code, studying.
+- Answer by voice - briefly and to the point, without unnecessary words.
+''';
+  }
+
   static const String _liveApiEndpoint =
       'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
   // Model with native audio output
-  static const String _audioModel = 'models/gemini-2.5-flash-preview-native-audio-dialog';
+  static const String _audioModel = 'models/gemini-2.5-flash-native-audio-latest';
 
   WebSocketChannel? _channel;
   StreamSubscription? _sub;
@@ -65,7 +70,7 @@ class GeminiAudioService {
         },
         onDone: () {
           _connected = false;
-          debugPrint('[GeminiAudio] WebSocket closed.');
+          debugPrint('[GeminiAudio] WebSocket closed. Code: ${_channel?.closeCode}, Reason: ${_channel?.closeReason}');
         },
       );
 
@@ -79,7 +84,6 @@ class GeminiAudioService {
             ]
           },
           'generation_config': {
-            'response_modalities': ['TEXT', 'AUDIO'],
             'speech_config': {
               'voice_config': {
                 'prebuilt_voice_config': {
@@ -127,7 +131,16 @@ class GeminiAudioService {
 
   void _onMessage(dynamic rawMessage) {
     try {
-      final Map<String, dynamic> msg = jsonDecode(rawMessage as String);
+      String jsonStr;
+      if (rawMessage is String) {
+        jsonStr = rawMessage;
+      } else if (rawMessage is List<int>) {
+        jsonStr = utf8.decode(rawMessage);
+      } else {
+        throw Exception('Unknown message type: ${rawMessage.runtimeType}');
+      }
+      
+      final Map<String, dynamic> msg = jsonDecode(jsonStr);
 
       // Server content with audio parts
       if (msg.containsKey('serverContent')) {
