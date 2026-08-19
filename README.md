@@ -1,61 +1,61 @@
 # Miku AI
 
-Персональный AI-ассистент на Flutter с поддержкой облачных моделей Google Gemini и локальных моделей через Ollama.
+A cross-platform personal AI assistant built with Flutter, supporting Google Gemini cloud models and local offline models via Ollama.
 
-## Возможности
+## Features
 
-- **Поддержка моделей**: работа с Google Gemini (`gemini-3.1-flash-lite`, `gemini-3.5-flash-lite`) и локальными моделями через Ollama (`llama3`, `mistral`, `qwen`, `phi3`).
-- **Голосовые ответы**: озвучивание ответов через Gemini Native Audio TTS с синхронной печатью текста во время речи.
-- **Быстрый режим чата**: моментальный вывод текста эффектом печати при отключённом звуке.
-- **Мультиязычность**: интерфейс и системный промпт на русском, казахском и английском языках.
-- **Синхронизация данных**: авторизация через Firebase Auth, сохранение истории чата и настроек (тема, голос, язык, модель) в Cloud Firestore и локальном кэше.
-- **Удобство на ПК**: отправка сообщений по нажатию Enter (Shift + Enter для новой строки).
-- **Минималистичный интерфейс**: тёмная и светлая темы, быстрые карточки запросов и статистика активности.
+- **Model Support**: Works with Google Gemini (`gemini-3.1-flash-lite`, `gemini-3.5-flash-lite`) and local LLMs via Ollama (`llama3`, `mistral`, `qwen`, `phi3`).
+- **Voice Responses**: Neural text-to-speech with Gemini Native Audio TTS, synchronized with live word-by-word text streaming.
+- **Fast Chat Mode**: Instant typewriter response rendering when voice output is turned off.
+- **Multilingual**: Complete interface and system prompts in English, Russian, and Kazakh.
+- **Cloud & Local Sync**: Firebase Auth, Firestore history and user settings persistence (theme, voice, language, active model) alongside local caching.
+- **Desktop Friendly**: Send messages with Enter (Shift + Enter for new lines).
+- **Clean UI**: Minimalist light and dark themes, quick prompt chips, and activity stats.
 
-## Стек технологий
+## Tech Stack
 
-- **Фреймворк**: Flutter / Dart
-- **Бэкенд**: Firebase (Auth, Firestore, Storage)
-- **API моделей**: Google Gemini API (v1beta), Ollama REST API
-- **Озвучка**: Gemini TTS, flutter_tts
-- **Локальное хранилище**: SharedPreferences
-- **Шрифты и анимации**: Inter, JetBrains Mono, flutter_animate
+- **Framework**: Flutter / Dart
+- **Backend**: Firebase (Auth, Firestore, Storage)
+- **AI APIs**: Google Gemini API (v1beta), Ollama REST API
+- **Audio & Speech**: Gemini TTS, flutter_tts
+- **Local Storage**: SharedPreferences
+- **Fonts & Animations**: Inter, JetBrains Mono, flutter_animate
 
-## Настройка и запуск
+## Getting Started
 
-### 1. Клонирование и зависимости
+### 1. Clone the repository and install dependencies
 ```bash
 git clone https://github.com/kok-o/ai-miky.git
 cd my_flutter_app
 flutter pub get
 ```
 
-### 2. Конфигурация API ключа
-Создайте файл `env.txt` в папке `my_flutter_app/`:
+### 2. Configure API Key
+Create an `env.txt` file inside the `my_flutter_app/` directory:
 ```ini
-GEMINI_API_KEY=ваш_ключ_от_google_ai_studio
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-### 3. Запуск
+### 3. Run the App
 ```bash
-# Запуск в браузере
+# Web (Chrome)
 flutter run -d chrome
 
-# Запуск на Windows
+# Desktop (Windows)
 flutter run -d windows
 
-# Запуск на Android / iOS
+# Mobile (Android / iOS)
 flutter run
 ```
 
-## Работа с локальными моделями (Ollama)
+## Running Local Models (Ollama)
 
-1. Установите и запустите Ollama:
+1. Install and start Ollama:
 ```bash
 ollama serve
 ollama pull llama3
 ```
 
-2. В настройках приложения укажите адрес:
-- Для ПК и браузера: `http://localhost:11434`
-- Для Android эмулятора: `http://10.0.2.2:11434`
+2. In the app settings, set the Ollama Base URL:
+- Desktop & Web: `http://localhost:11434`
+- Android Emulator: `http://10.0.2.2:11434`
