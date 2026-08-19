@@ -63,42 +63,14 @@ class GlowOrb extends StatelessWidget {
   }
 }
 
-/// Full dark background with gradient + ambient glow orbs.
+/// Full dark background — flat, no glowing orbs (Vercel-style clean dark).
 class DarkBackground extends StatelessWidget {
   const DarkBackground({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: ThemeConstants.kBgGradient,
-            ),
-          ),
-        ),
-        Positioned(
-          top: -60,
-          right: -60,
-          child: GlowOrb(
-            color: ThemeConstants.kBrandCyan,
-            size: 280,
-            blurRadius: 90,
-          ),
-        ),
-        Positioned(
-          bottom: -40,
-          left: -40,
-          child: GlowOrb(
-            color: ThemeConstants.kAccentColor,
-            size: 220,
-            blurRadius: 80,
-          ),
-        ),
-      ],
+    return Container(
+      color: ThemeConstants.kDark0,
     );
   }
 }

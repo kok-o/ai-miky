@@ -1,8 +1,18 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/theme_constants.dart';
 import '../l10n/app_localizations.dart';
 import 'logo_01.dart';
 
+/// Vercel-style bottom navigation bar.
+///
+/// Design decisions:
+/// - Custom Row instead of Material NavigationBar for precise control
+/// - Frosted glass background (BackdropFilter blur)
+/// - Label ONLY for active tab (user preference: Vercel-style compromise)
+/// - Animated label fade-in when tab becomes active
+/// - No pill indicator background — accent color on icon/label only
 class BottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -11,104 +21,168 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme  = Theme.of(context).colorScheme;
-    final isDark  = Theme.of(context).brightness == Brightness.dark;
-    final l10n    = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n   = AppLocalizations.of(context)!;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF000000) : scheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.1)
-                : Colors.black.withValues(alpha: 0.1),
+    final bgColor = isDark
+        ? ThemeConstants.kDark0.withValues(alpha: 0.92)
+        : ThemeConstants.kLight0.withValues(alpha: 0.92);
+    final borderColor = isDark
+        ? ThemeConstants.kDarkBorder
+        : ThemeConstants.kLightBorder;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: ThemeConstants.kBlurSigma,
+          sigmaY: ThemeConstants.kBlurSigma,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bgColor,
+            border: Border(
+              top: BorderSide(color: borderColor, width: 1),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              height: 60,
+              child: Row(
+                children: [
+                  _NavItem(
+                    index: 0,
+                    currentIndex: currentIndex,
+                    label: l10n.home,
+                    icon: Icons.home_outlined,
+                    selectedIcon: Icons.home_rounded,
+                    useLogo: true,
+                    isDark: isDark,
+                    onTap: onTap,
+                  ),
+                  _NavItem(
+                    index: 1,
+                    currentIndex: currentIndex,
+                    label: l10n.chat,
+                    icon: Icons.chat_bubble_outline_rounded,
+                    selectedIcon: Icons.chat_bubble_rounded,
+                    isDark: isDark,
+                    onTap: onTap,
+                  ),
+                  _NavItem(
+                    index: 2,
+                    currentIndex: currentIndex,
+                    label: l10n.profile,
+                    icon: Icons.person_outline_rounded,
+                    selectedIcon: Icons.person_rounded,
+                    isDark: isDark,
+                    onTap: onTap,
+                  ),
+                  _NavItem(
+                    index: 3,
+                    currentIndex: currentIndex,
+                    label: l10n.settings,
+                    icon: Icons.tune_outlined,
+                    selectedIcon: Icons.tune_rounded,
+                    isDark: isDark,
+                    onTap: onTap,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
-      child: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: onTap,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        indicatorColor: isDark 
-            ? Colors.white.withValues(alpha: 0.12)
-            : Colors.black.withValues(alpha: 0.08),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        animationDuration: ThemeConstants.kDurationMed,
-        destinations: [
-          _dest(
-            index: 0,
-            icon: Icons.home_outlined,
-            selectedIcon: Icons.home_rounded,
-            label: l10n.home,
-            useLogo: true,
-            currentIndex: currentIndex,
-            isDark: isDark,
-          ),
-          _dest(
-            index: 1,
-            icon: Icons.chat_bubble_outline_rounded,
-            selectedIcon: Icons.chat_bubble_rounded,
-            label: l10n.chat,
-            currentIndex: currentIndex,
-            isDark: isDark,
-          ),
-          _dest(
-            index: 2,
-            icon: Icons.person_outline_rounded,
-            selectedIcon: Icons.person_rounded,
-            label: l10n.profile,
-            currentIndex: currentIndex,
-            isDark: isDark,
-          ),
-          _dest(
-            index: 3,
-            icon: Icons.tune_outlined,
-            selectedIcon: Icons.tune_rounded,
-            label: l10n.settings,
-            currentIndex: currentIndex,
-            isDark: isDark,
-          ),
-        ],
-      ),
     );
   }
+}
 
-  NavigationDestination _dest({
-    required int index,
-    required IconData icon,
-    required IconData selectedIcon,
-    required String label,
-    required int currentIndex,
-    required bool isDark,
-    bool useLogo = false,
-  }) {
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.index,
+    required this.currentIndex,
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+    required this.isDark,
+    required this.onTap,
+    this.useLogo = false,
+  });
+
+  final int index;
+  final int currentIndex;
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final bool isDark;
+  final ValueChanged<int> onTap;
+  final bool useLogo;
+
+  @override
+  Widget build(BuildContext context) {
     final isSelected = currentIndex == index;
-    final activeColor = isDark ? Colors.white : Colors.black;
-    final inactiveColor = isDark ? Colors.white54 : Colors.black54;
+    final activeColor   = ThemeConstants.kAccentBlue;
+    final inactiveColor = isDark ? ThemeConstants.kTextTertiary : const Color(0xFFAAAAAA);
 
-    return NavigationDestination(
-      icon: AnimatedScale(
-        duration: ThemeConstants.kDurationFast,
-        scale: isSelected ? 1.05 : 1.0,
-        child: useLogo
-            ? Logo01(
-                size: 26,
-                showText: false,
-                color: isSelected ? activeColor : inactiveColor,
-              )
-            : Icon(isSelected ? selectedIcon : icon, color: isSelected ? activeColor : inactiveColor),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onTap(index),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedScale(
+          duration: ThemeConstants.kDurationFast,
+          curve: Curves.easeOutCubic,
+          scale: isSelected ? 1.0 : 0.96,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Icon ──────────────────────────────────────────────────────
+              AnimatedSwitcher(
+                duration: ThemeConstants.kDurationFast,
+                transitionBuilder: (child, animation) => ScaleTransition(
+                  scale: animation,
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child: useLogo
+                    ? Logo01(
+                        key: ValueKey('logo_$isSelected'),
+                        size: 22,
+                        showText: false,
+                        color: isSelected ? activeColor : inactiveColor,
+                      )
+                    : Icon(
+                        key: ValueKey('icon_${index}_$isSelected'),
+                        isSelected ? selectedIcon : icon,
+                        color: isSelected ? activeColor : inactiveColor,
+                        size: 22,
+                      ),
+              ),
+
+              // ── Label — only for active tab ───────────────────────────────
+              AnimatedSize(
+                duration: ThemeConstants.kDurationMed,
+                curve: Curves.easeOutCubic,
+                child: isSelected
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: activeColor,
+                            letterSpacing: 0.2,
+                          ),
+                        )
+                            .animate()
+                            .fadeIn(duration: ThemeConstants.kDurationFast),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
       ),
-      selectedIcon: useLogo 
-          ? Logo01(
-              size: 28,
-              showText: false,
-              color: activeColor,
-            )
-          : Icon(selectedIcon, color: activeColor),
-      label: label,
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'gemini_service.dart';
 
 class OllamaService {
   final String baseUrl;
@@ -22,7 +23,8 @@ class OllamaService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-        return data['response'] ?? 'No response from Ollama.';
+        final rawResponse = data['response'] ?? 'No response from Ollama.';
+        return cleanAiResponse(rawResponse);
       } else {
         return 'Ollama Error ${response.statusCode}: ${response.body}';
       }

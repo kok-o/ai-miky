@@ -654,6 +654,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wrong current password'**
   String get wrongCurrentPassword;
+
+  /// No description provided for @analysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis'**
+  String get analysis;
+
+  /// No description provided for @code.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get code;
+
+  /// No description provided for @translation.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate'**
+  String get translation;
+
+  /// No description provided for @promptAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Perform a detailed analysis of:'**
+  String get promptAnalysis;
+
+  /// No description provided for @promptCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a Dart function for:'**
+  String get promptCode;
+
+  /// No description provided for @promptTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Help me translate the following text:'**
+  String get promptTranslation;
+
+  /// No description provided for @suggestionQuantum.
+  ///
+  /// In en, this message translates to:
+  /// **'Explain quantum computing in simple terms'**
+  String get suggestionQuantum;
+
+  /// No description provided for @suggestionDart.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a Dart function'**
+  String get suggestionDart;
+
+  /// No description provided for @suggestionTranslate.
+  ///
+  /// In en, this message translates to:
+  /// **'Help me translate a text'**
+  String get suggestionTranslate;
+
+  /// No description provided for @appearanceSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearanceSection;
+
+  /// No description provided for @modelSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get modelSection;
+
+  /// No description provided for @accountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountSection;
+
+  /// No description provided for @voiceResponsesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Voice Responses'**
+  String get voiceResponsesTitle;
+
+  /// No description provided for @voiceResponsesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI reads responses aloud'**
+  String get voiceResponsesSubtitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -292,4 +292,46 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get wrongCurrentPassword => 'Ағымдағы құпиясөз қате';
+
+  @override
+  String get analysis => 'Талдау';
+
+  @override
+  String get code => 'Код';
+
+  @override
+  String get translation => 'Аударма';
+
+  @override
+  String get promptAnalysis => 'Мына тақырыпқа толық талдау жасап бер:';
+
+  @override
+  String get promptCode => 'Dart тілінде функция жазып бер:';
+
+  @override
+  String get promptTranslation => 'Мына мәтінді аударуға көмектес:';
+
+  @override
+  String get suggestionQuantum => 'Кванттық компьютерлерді қарапайым тілмен түсіндір';
+
+  @override
+  String get suggestionDart => 'Dart тілінде функция жазып бер';
+
+  @override
+  String get suggestionTranslate => 'Мәтінді ағылшын тіліне аударып бер';
+
+  @override
+  String get appearanceSection => 'Сыртқы түрі';
+
+  @override
+  String get modelSection => 'Модель';
+
+  @override
+  String get accountSection => 'Аккаунт';
+
+  @override
+  String get voiceResponsesTitle => 'AI дауыстық жауаптары';
+
+  @override
+  String get voiceResponsesSubtitle => 'AI жауаптарды дауыстап оқиды';
 }

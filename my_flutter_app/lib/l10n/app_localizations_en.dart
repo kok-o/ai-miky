@@ -292,4 +292,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wrongCurrentPassword => 'Wrong current password';
+
+  @override
+  String get analysis => 'Analysis';
+
+  @override
+  String get code => 'Code';
+
+  @override
+  String get translation => 'Translate';
+
+  @override
+  String get promptAnalysis => 'Perform a detailed analysis of:';
+
+  @override
+  String get promptCode => 'Write a Dart function for:';
+
+  @override
+  String get promptTranslation => 'Help me translate the following text:';
+
+  @override
+  String get suggestionQuantum => 'Explain quantum computing in simple terms';
+
+  @override
+  String get suggestionDart => 'Write a Dart function';
+
+  @override
+  String get suggestionTranslate => 'Help me translate a text';
+
+  @override
+  String get appearanceSection => 'Appearance';
+
+  @override
+  String get modelSection => 'Model';
+
+  @override
+  String get accountSection => 'Account';
+
+  @override
+  String get voiceResponsesTitle => 'AI Voice Responses';
+
+  @override
+  String get voiceResponsesSubtitle => 'AI reads responses aloud';
 }

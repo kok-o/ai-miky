@@ -93,7 +93,13 @@ class _RootNavState extends State<_RootNav> {
     _pages = [
       HomeScreen(
         key: const ValueKey('home'),
-        onStartChat: () => setState(() => _index = 1),
+        onStartChat: ([prompt]) {
+          if (prompt != null && prompt.isNotEmpty) {
+            context.read<AppState>().setPendingPrompt(prompt);
+          }
+          setState(() => _index = 1);
+        },
+        onOpenProfile: () => setState(() => _index = 2),
       ),
       const ChatScreen(key: ValueKey('chat')),
       const ProfileScreen(key: ValueKey('profile')),

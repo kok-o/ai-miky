@@ -13,12 +13,12 @@ class GeminiAudioService {
   String get _mikuSystemPromptAudio {
     final lang = languageCode == 'en' ? 'English' : languageCode == 'kk' ? 'Kazakh' : 'Russian';
     return '''
-You are Miku, a friendly, smart, and slightly playful AI assistant.
+You are Miku, a friendly, smart, and lively AI assistant.
 - You always introduce yourself as Miku. Never mention Gemini or Google.
-- Communicate warmly, lively, and concisely.
-- ALWAYS respond in the following language: $lang. This is a strict requirement.
-- You help with any tasks: questions, ideas, code, studying.
-- Answer by voice - briefly and to the point, without unnecessary words.
+- Communicate warmly, naturally, and concisely.
+- ALWAYS respond exclusively in the following language: $lang.
+- Provide ONLY the direct spoken response to the user. NEVER output thought process, reasoning, planning, or headers.
+- Answer by voice - briefly and to the point.
 ''';
   }
 
@@ -153,6 +153,9 @@ You are Miku, a friendly, smart, and slightly playful AI assistant.
           if (parts != null) {
             for (final part in parts) {
               final partMap = part as Map<String, dynamic>;
+              if (partMap['thought'] == true) {
+                continue;
+              }
               if (partMap.containsKey('inlineData')) {
                 final inlineData = partMap['inlineData'] as Map<String, dynamic>;
                 final b64 = inlineData['data'] as String?;

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../l10n/app_localizations.dart';
 import '../state/app_state.dart';
 import '../widgets/logo_01.dart';
+import '../theme/theme_constants.dart';
 import 'admin_reports_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -81,142 +83,203 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
-    final isDark = appState.themeMode == ThemeMode.dark;
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
+    final appState    = context.watch<AppState>();
+    final isDark      = Theme.of(context).brightness == Brightness.dark;
+    final l10n        = AppLocalizations.of(context)!;
+    final textColor   = isDark ? ThemeConstants.kTextPrimary   : ThemeConstants.kTextPrimaryLight;
+    final mutedColor  = isDark ? ThemeConstants.kTextSecondary : ThemeConstants.kTextSecondaryLight;
+    final borderColor = isDark ? ThemeConstants.kDarkBorder    : ThemeConstants.kLightBorder;
+    final surfaceBg   = isDark ? ThemeConstants.kDark1         : ThemeConstants.kLight1;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar.large(
-            expandedHeight: 200,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Logo01(size: 38, text: l10n.settings, heroTag: null),
-              centerTitle: true,
-              background: Container(
-                color: scheme.secondaryContainer.withValues(alpha: 0.3),
+      appBar: AppBar(
+        toolbarHeight: 68,
+        title: Logo01(size: 36, text: l10n.settings, heroTag: null),
+        centerTitle: true,
+      ),
+      body: Container(
+        color: isDark ? ThemeConstants.kDark0 : ThemeConstants.kLight0,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight > 36 ? constraints.maxHeight - 36 : 0,
+              ),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // ── Appearance ──────────────────────────────────────────────────
+                    _SectionLabel(l10n.appearanceSection, mutedColor),
+                    const SizedBox(height: 8),
+                    _SettingsTile(
+                      surfaceBg: surfaceBg,
+                      borderColor: borderColor,
+                      child: SwitchListTile(
+                        title: Text(l10n.darkTheme, style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+                        secondary: Icon(isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded, color: mutedColor),
+                        value: isDark,
+                        onChanged: (v) => appState.setThemeMode(v ? ThemeMode.dark : ThemeMode.light),
+                      ),
+                    ).animate().fadeIn(duration: 300.ms),
+
+                    const SizedBox(height: 8),
+                    _SettingsTile(
+                      surfaceBg: surfaceBg,
+                      borderColor: borderColor,
+                      child: ListTile(
+                        leading: Icon(Icons.language_rounded, color: mutedColor),
+                        title: Text(l10n.language, style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+                        subtitle: Text(_getLanguageName(appState.locale, l10n), style: TextStyle(color: mutedColor, fontSize: 13)),
+                        trailing: Icon(Icons.chevron_right_rounded, color: mutedColor, size: 18),
+                        onTap: () => _showLanguageSelector(context),
+                      ),
+                    ).animate(delay: 40.ms).fadeIn(duration: 300.ms),
+
+                    const SizedBox(height: 8),
+                    _SettingsTile(
+                      surfaceBg: surfaceBg,
+                      borderColor: borderColor,
+                      child: SwitchListTile(
+                        title: Text(l10n.voiceResponsesTitle, style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+                        subtitle: Text(l10n.voiceResponsesSubtitle, style: TextStyle(color: mutedColor, fontSize: 13)),
+                        secondary: Icon(Icons.record_voice_over_rounded, color: mutedColor),
+                        value: appState.voiceEnabled,
+                        onChanged: (v) => appState.setVoiceEnabled(v),
+                      ),
+                    ).animate(delay: 80.ms).fadeIn(duration: 300.ms),
+
+                    const SizedBox(height: 24),
+
+                    // ── Model ────────────────────────────────────────────────────────
+                    _SectionLabel(l10n.modelSection, mutedColor),
+                    const SizedBox(height: 8),
+                    _SettingsTile(
+                      surfaceBg: surfaceBg,
+                      borderColor: borderColor,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: appState.selectedModel,
+                          dropdownColor: surfaceBg,
+                          style: TextStyle(color: textColor, fontSize: 14),
+                          decoration: const InputDecoration(border: InputBorder.none),
+                          items: [
+                            DropdownMenuItem(value: 'gemini-3.1-flash-lite', child: Text('Gemini 3.1 Flash Lite (500 req/day)')),
+                            DropdownMenuItem(value: 'gemini-3.5-flash-lite', child: Text('Gemini 3.5 Flash Lite (500 req/day)')),
+                            DropdownMenuItem(value: 'gemini-3.7-flash',      child: Text('Gemini 3.7 Flash')),
+                            DropdownMenuItem(value: 'gemini-2.5-flash',      child: Text('Gemini 2.5 Flash')),
+                            DropdownMenuItem(value: '', enabled: false, child: Divider()),
+                            DropdownMenuItem(value: 'ollama:llama3',    child: Text('Ollama: Llama 3')),
+                            DropdownMenuItem(value: 'ollama:mistral',   child: Text('Ollama: Mistral')),
+                            DropdownMenuItem(value: 'ollama:qwen3:8b',  child: Text('Ollama: Qwen 3 8B')),
+                            DropdownMenuItem(value: 'ollama:phi3',      child: Text('Ollama: Phi 3')),
+                          ],
+                          onChanged: (v) {
+                            if (v != null && v.isNotEmpty) appState.setSelectedModel(v);
+                          },
+                        ),
+                      ),
+                    ).animate(delay: 120.ms).fadeIn(duration: 300.ms),
+
+                    if (appState.isOllamaModel) ...[
+                      const SizedBox(height: 12),
+                      Text(l10n.ollamaBaseUrl, style: TextStyle(fontWeight: FontWeight.w600, color: mutedColor, fontSize: 13)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _ollamaUrlController,
+                        decoration: const InputDecoration(
+                          hintText: 'http://localhost:11434',
+                          helperText: 'Emulator: http://10.0.2.2:11434',
+                        ),
+                        onSubmitted: (_) => _saveOllamaUrl(),
+                        onEditingComplete: _saveOllamaUrl,
+                        keyboardType: TextInputType.url,
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+
+                    // ── Account ──────────────────────────────────────────────────────
+                    if (appState.isLoggedIn) ...[
+                      _SectionLabel(l10n.accountSection, mutedColor),
+                      const SizedBox(height: 8),
+                      _SettingsAction(
+                        icon: Icons.lock_reset_rounded,
+                        title: l10n.changePassword,
+                        isDark: isDark,
+                        textColor: textColor,
+                        mutedColor: mutedColor,
+                        surfaceBg: surfaceBg,
+                        borderColor: borderColor,
+                        onTap: () => _showChangePasswordDialog(context),
+                      ),
+                      const SizedBox(height: 8),
+                      _SettingsAction(
+                        icon: Icons.bug_report_rounded,
+                        title: l10n.reportBug,
+                        isDark: isDark,
+                        textColor: textColor,
+                        mutedColor: mutedColor,
+                        surfaceBg: surfaceBg,
+                        borderColor: borderColor,
+                        onTap: () => _showBugReportDialog(context),
+                      ),
+                      if (appState.isAdmin) ...[
+                        const SizedBox(height: 8),
+                        _SettingsAction(
+                          icon: Icons.admin_panel_settings_rounded,
+                          title: l10n.adminPanel,
+                          isDark: isDark,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          surfaceBg: surfaceBg,
+                          borderColor: borderColor,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const AdminReportsScreen()),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: surfaceBg,
+                          borderRadius: BorderRadius.circular(ThemeConstants.kRadiusMd),
+                          border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.35), width: 1),
+                        ),
+                        child: ListTile(
+                          leading: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
+                          title: Text(l10n.logout, style: const TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w500)),
+                          trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFEF4444), size: 18),
+                          onTap: () async {
+                            await appState.logout();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(l10n.loggedOut)),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+
+                    const Spacer(),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: Text(
+                        'Miku AI v1.0.0',
+                        style: TextStyle(color: mutedColor, fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
               ),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                Card(
-                  child: SwitchListTile(
-                    title: Text(l10n.darkTheme),
-                    secondary: const Icon(Icons.dark_mode_rounded),
-                    value: isDark,
-                    onChanged: (v) => appState.setThemeMode(v ? ThemeMode.dark : ThemeMode.light),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.language_rounded),
-                    title: Text(l10n.language),
-                    subtitle: Text(_getLanguageName(appState.locale, l10n)),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => _showLanguageSelector(context),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: SwitchListTile(
-                    title: const Text('Голосовые ответы ИИ'),
-                    subtitle: const Text('ИИ зачитывает ответы вслух'),
-                    secondary: const Icon(Icons.record_voice_over_rounded),
-                    value: appState.voiceEnabled,
-                    onChanged: (v) => appState.setVoiceEnabled(v),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(l10n.model, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      value: appState.selectedModel,
-                      decoration: const InputDecoration(border: InputBorder.none),
-                      items: const [
-                        DropdownMenuItem(value: 'gemini-2.5-flash', child: Text('Gemini 2.5 Flash Native Audio Dialog')),
-                        DropdownMenuItem(value: '', enabled: false, child: Divider()),
-                        DropdownMenuItem(value: 'ollama:llama3', child: Text('Ollama: Llama 3')),
-                        DropdownMenuItem(value: 'ollama:mistral', child: Text('Ollama: Mistral')),
-                        DropdownMenuItem(value: 'ollama:qwen3:8b', child: Text('Ollama: Qwen 3 8B')),
-                        DropdownMenuItem(value: 'ollama:phi3', child: Text('Ollama: Phi 3')),
-                      ],
-                      onChanged: (v) {
-                        if (v != null && v.isNotEmpty) appState.setSelectedModel(v);
-                      },
-                    ),
-                  ),
-                ),
-                if (appState.isOllamaModel) ...[
-                  const SizedBox(height: 16),
-                  Text(l10n.ollamaBaseUrl, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _ollamaUrlController,
-                    decoration: InputDecoration(
-                      hintText: 'http://localhost:11434',
-                      helperText: 'Emulator: http://10.0.2.2:11434',
-                    ),
-                    onSubmitted: (_) => _saveOllamaUrl(),
-                    onEditingComplete: _saveOllamaUrl,
-                    keyboardType: TextInputType.url,
-                  ),
-                ],
-                const SizedBox(height: 32),
-                const Divider(),
-                const SizedBox(height: 16),
-                if (appState.isLoggedIn) ...[
-                  _SettingsAction(
-                    icon: Icons.lock_reset_rounded,
-                    title: l10n.changePassword,
-                    onTap: () => _showChangePasswordDialog(context),
-                  ),
-                  _SettingsAction(
-                    icon: Icons.bug_report_rounded,
-                    title: l10n.reportBug,
-                    onTap: () => _showBugReportDialog(context),
-                  ),
-                  if (appState.isAdmin)
-                    _SettingsAction(
-                      icon: Icons.admin_panel_settings_rounded,
-                      title: l10n.adminPanel,
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminReportsScreen())),
-                    ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  _SettingsAction(
-                    icon: Icons.logout_rounded,
-                    title: l10n.logout,
-                    color: Colors.red,
-                    onTap: () async {
-                      await appState.logout();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.loggedOut)));
-                      }
-                    },
-                  ),
-                ],
-                const SizedBox(height: 48),
-                const Center(
-                  child: Text(
-                    'Miku AI v1.0.0',
-                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
-                  ),
-                ),
-                const SizedBox(height: 100),
-              ]),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -332,22 +395,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
+/// Section label above a settings group
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text, this.color);
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 0),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+/// Container tile with border tokens
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({required this.child, required this.surfaceBg, required this.borderColor});
+  final Widget child;
+  final Color surfaceBg;
+  final Color borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceBg,
+        borderRadius: BorderRadius.circular(ThemeConstants.kRadiusMd),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: child,
+    );
+  }
+}
+
 class _SettingsAction extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
-  final Color? color;
+  final bool isDark;
+  final Color textColor;
+  final Color mutedColor;
+  final Color surfaceBg;
+  final Color borderColor;
 
-  const _SettingsAction({required this.icon, required this.title, required this.onTap, this.color});
+  const _SettingsAction({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    required this.isDark,
+    required this.textColor,
+    required this.mutedColor,
+    required this.surfaceBg,
+    required this.borderColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceBg,
+        borderRadius: BorderRadius.circular(ThemeConstants.kRadiusMd),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      margin: const EdgeInsets.only(bottom: 0),
       child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        leading: Icon(icon, color: mutedColor, size: 20),
+        title: Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+        trailing: Icon(Icons.chevron_right_rounded, color: mutedColor, size: 18),
         onTap: onTap,
       ),
     );

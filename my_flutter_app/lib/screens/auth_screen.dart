@@ -1,10 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../state/app_state.dart';
 import '../widgets/logo_01.dart';
-import '../widgets/blurred_circle.dart';
 import '../theme/theme_constants.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -16,6 +14,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen>
     with SingleTickerProviderStateMixin {
+  final _nameController     = TextEditingController();
   final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLogin         = true;
@@ -35,6 +34,7 @@ class _AuthScreenState extends State<AuthScreen>
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _fadeCtrl.dispose();
@@ -46,6 +46,8 @@ class _AuthScreenState extends State<AuthScreen>
     final l10n = AppLocalizations.of(context)!;
     final email = _emailController.text.trim();
     final pwd   = _passwordController.text;
+    final name  = _nameController.text.trim();
+
     if (email.isEmpty || pwd.isEmpty) {
       _showSnack(l10n.enterEmailPassword);
       return;
@@ -54,7 +56,7 @@ class _AuthScreenState extends State<AuthScreen>
     setState(() => _loading = true);
     final err = _isLogin
         ? await app.login(email: email, password: pwd, l10n: l10n)
-        : await app.register(email: email, password: pwd, l10n: l10n);
+        : await app.register(email: email, password: pwd, name: name, l10n: l10n);
     if (!mounted) return;
     setState(() => _loading = false);
     if (err != null) _showSnack(err);
@@ -67,11 +69,12 @@ class _AuthScreenState extends State<AuthScreen>
   Future<void> _showLanguageSelector(BuildContext ctx) async {
     final appState = ctx.read<AppState>();
     final l10n     = AppLocalizations.of(ctx)!;
+    final isDark   = Theme.of(ctx).brightness == Brightness.dark;
     final sel = await showModalBottomSheet<Locale>(
       context: ctx,
-      backgroundColor: const Color(0xFF111120),
+      backgroundColor: isDark ? ThemeConstants.kDark1 : ThemeConstants.kLight1,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -83,19 +86,19 @@ class _AuthScreenState extends State<AuthScreen>
                 width: 40, height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: isDark ? ThemeConstants.kDarkBorder : ThemeConstants.kLightBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               Text(l10n.selectLanguage,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
-                      color: Colors.white)),
+                      color: isDark ? ThemeConstants.kTextPrimary : ThemeConstants.kTextPrimaryLight)),
               const SizedBox(height: 8),
-              _langTile(context, l10n.russian,  const Locale('ru'), appState.locale),
-              _langTile(context, l10n.kazakh,   const Locale('kk'), appState.locale),
-              _langTile(context, l10n.english,  const Locale('en'), appState.locale),
+              _langTile(context, l10n.russian,  const Locale('ru'), appState.locale, isDark),
+              _langTile(context, l10n.kazakh,   const Locale('kk'), appState.locale, isDark),
+              _langTile(context, l10n.english,  const Locale('en'), appState.locale, isDark),
             ],
           ),
         ),
@@ -104,15 +107,15 @@ class _AuthScreenState extends State<AuthScreen>
     if (sel != null) await appState.setLocale(sel);
   }
 
-  Widget _langTile(BuildContext ctx, String label, Locale value, Locale current) {
+  Widget _langTile(BuildContext ctx, String label, Locale value, Locale current, bool isDark) {
     final isSelected = current.languageCode == value.languageCode;
     return ListTile(
       title: Text(label,
           style: TextStyle(
-              color: isSelected ? ThemeConstants.kBrandCyan : Colors.white,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal)),
+              color: isSelected ? ThemeConstants.kAccentBlue : (isDark ? ThemeConstants.kTextPrimary : ThemeConstants.kTextPrimaryLight),
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
       trailing: isSelected
-          ? const Icon(Icons.check_rounded, color: ThemeConstants.kBrandCyan)
+          ? const Icon(Icons.check_rounded, color: ThemeConstants.kAccentBlue)
           : null,
       onTap: () => Navigator.pop(ctx, value),
     );
@@ -120,7 +123,6 @@ class _AuthScreenState extends State<AuthScreen>
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final isDark  = Theme.of(context).brightness == Brightness.dark;
     final l10n   = AppLocalizations.of(context)!;
 
@@ -129,17 +131,26 @@ class _AuthScreenState extends State<AuthScreen>
         fit: StackFit.expand,
         children: [
           // ── Background ─────────────────────────────────────────────────────
-          if (isDark) const DarkBackground()
-          else Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  scheme.primaryContainer.withValues(alpha: 0.3),
-                  scheme.surface,
-                  scheme.secondaryContainer.withValues(alpha: 0.2),
-                ],
+          Container(
+            color: isDark ? ThemeConstants.kDark0 : ThemeConstants.kLight0,
+          ),
+          // Subtle ambient glow
+          Positioned(
+            top: -120,
+            left: 0, right: 0,
+            child: Center(
+              child: Container(
+                width: 400,
+                height: 400,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      ThemeConstants.kAccentBlue.withValues(alpha: isDark ? 0.06 : 0.04),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -173,20 +184,18 @@ class _AuthScreenState extends State<AuthScreen>
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.8,
-                              color: isDark ? Colors.white : scheme.onSurface,
+                              color: isDark ? ThemeConstants.kTextPrimary : ThemeConstants.kTextPrimaryLight,
                             ),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          isDark
+                          _isLogin
                               ? 'Войдите, чтобы продолжить'
                               : 'Добро пожаловать в Miku AI',
                           style: TextStyle(
                             fontSize: 14,
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.45)
-                                : scheme.onSurface.withValues(alpha: 0.55),
+                            color: isDark ? ThemeConstants.kTextSecondary : ThemeConstants.kTextSecondaryLight,
                           ),
                         ),
                         const SizedBox(height: 36),
@@ -196,6 +205,17 @@ class _AuthScreenState extends State<AuthScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              if (!_isLogin) ...[
+                                TextField(
+                                  controller: _nameController,
+                                  textCapitalization: TextCapitalization.words,
+                                  decoration: InputDecoration(
+                                    hintText: l10n.name,
+                                    prefixIcon: const Icon(Icons.person_outline_rounded),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
                               TextField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
@@ -229,8 +249,8 @@ class _AuthScreenState extends State<AuthScreen>
                                           height: 44,
                                           width: 44,
                                           child: CircularProgressIndicator(
-                                            strokeWidth: 2.5,
-                                            color: ThemeConstants.kBrandCyan,
+                                            strokeWidth: 2,
+                                            color: ThemeConstants.kAccentBlue,
                                           ),
                                         ),
                                       )
@@ -255,9 +275,9 @@ class _AuthScreenState extends State<AuthScreen>
 
                         const SizedBox(height: 8),
                         IconButton(
-                          icon: const Icon(Icons.language_rounded),
+                          icon: const Icon(Icons.language_rounded, size: 20),
                           tooltip: l10n.selectLanguage,
-                          color: isDark ? Colors.white38 : null,
+                          color: isDark ? ThemeConstants.kTextTertiary : ThemeConstants.kTextSecondaryLight,
                           onPressed: () => _showLanguageSelector(context),
                         ),
                       ],
@@ -281,26 +301,17 @@ class _GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.white.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.white.withValues(alpha: 0.6),
-            ),
-          ),
-          child: child,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      decoration: BoxDecoration(
+        color: isDark ? ThemeConstants.kDark1 : ThemeConstants.kLight1,
+        borderRadius: BorderRadius.circular(ThemeConstants.kRadiusLg),
+        border: Border.all(
+          color: isDark ? ThemeConstants.kDarkBorder : ThemeConstants.kLightBorder,
+          width: 1,
         ),
       ),
+      child: child,
     );
   }
 }

@@ -92,5 +92,19 @@
   "newStatus": "Жаңа",
   "home": "Басты бет",
   "chat": "Чат",
-  "wrongCurrentPassword": "Ағымдағы құпиясөз қате"
+  "wrongCurrentPassword": "Ағымдағы құпиясөз қате",
+  "analysis": "Талдау",
+  "code": "Код",
+  "translation": "Аударма",
+  "promptAnalysis": "Мына тақырыпқа толық талдау жасап бер:",
+  "promptCode": "Dart тілінде функция жазып бер:",
+  "promptTranslation": "Мына мәтінді аударуға көмектес:",
+  "suggestionQuantum": "Кванттық компьютерлерді қарапайым тілмен түсіндір",
+  "suggestionDart": "Dart тілінде функция жазып бер",
+  "suggestionTranslate": "Мәтінді ағылшын тіліне аударып бер",
+  "appearanceSection": "Сыртқы түрі",
+  "modelSection": "Модель",
+  "accountSection": "Аккаунт",
+  "voiceResponsesTitle": "AI дауыстық жауаптары",
+  "voiceResponsesSubtitle": "AI жауаптарды дауыстап оқиды"
 }

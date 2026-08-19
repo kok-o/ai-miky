@@ -2,7 +2,9 @@ import 'dart:ui';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../l10n/app_localizations.dart';
 import '../services/gemini_service.dart';
 import '../services/gemini_audio_service.dart';
@@ -82,7 +84,7 @@ class _ChatScreenState extends State<ChatScreen> {
             String placeholder = '🎤 (Voice response)';
             if (appState.locale.languageCode == 'ru') placeholder = '🎤 (Голосовой ответ)';
             if (appState.locale.languageCode == 'kk') placeholder = '🎤 (Дауыстық жауап)';
-            final textToSave = _streamingText.isNotEmpty ? _streamingText : placeholder;
+            final textToSave = _streamingText.isNotEmpty ? cleanAiResponse(_streamingText) : placeholder;
             final aiMessage = Message(text: textToSave, isUser: false);
             await _firestoreService.saveMessage(user.uid, aiMessage);
           }
@@ -154,8 +156,13 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    // Sync language code in case it changed in settings
+    // Sync language code, model name & user context in case it changed
     _geminiService.languageCode = appState.locale.languageCode;
+    _geminiService.modelName = appState.cleanModelName;
+    _geminiService.userName = appState.displayName.isNotEmpty
+        ? appState.displayName
+        : (user.email?.split('@').first ?? '');
+    _geminiService.userBio = appState.bio;
 
     _controller.clear();
     setState(() => _isTyping = true);
@@ -166,39 +173,21 @@ class _ChatScreenState extends State<ChatScreen> {
     await _firestoreService.saveMessage(user.uid, message);
 
     final voiceEnabled = appState.voiceEnabled;
-    
-    // Check if we should use Native Audio Dialog (WebSockets)
-    if (appState.selectedModel == 'gemini-2.5-flash' && voiceEnabled) {
-      await _initAudioServiceIfNeeded();
-      if (_audioService != null) {
-        setState(() {
-          _isStreaming = true;
-          _streamingText = '';
-        });
-        _audioChunkBuffer.clear();
-        _audioService!.sendText(userMessage);
-        return; // The rest is handled by onTurnComplete
-      }
-    }
 
-    // Get AI Response for REST fallback
+    // Get AI Response
     String responseText;
-    Uint8List? audioResponse;
+    Uint8List? audioBytes;
 
     try {
       if (appState.isOllamaModel) {
         final ollamaService = OllamaService(baseUrl: appState.ollamaBaseUrl);
         responseText = await ollamaService.sendMessage(userMessage, model: appState.cleanModelName);
       } else {
-        // Use persistent GeminiService (keeps Miku's memory of the conversation)
-        final res = await _geminiService.sendMessage(userMessage, requestAudio: voiceEnabled);
-        responseText = res.text;
-        audioResponse = res.audioBytes;
+        responseText = await _geminiService.sendMessage(userMessage);
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isTyping = false);
-      _inputFocus.requestFocus();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
@@ -213,7 +202,6 @@ class _ChatScreenState extends State<ChatScreen> {
         responseText.startsWith('Ollama Error')) {
       if (!mounted) return;
       setState(() => _isTyping = false);
-      _inputFocus.requestFocus();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.ollamaConnectionError),
@@ -223,28 +211,91 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    // Save AI Message
-    final aiMessage = Message(text: responseText, isUser: false);
-    await _firestoreService.saveMessage(user.uid, aiMessage);
+    final cleanText = cleanAiResponse(responseText);
 
-    setState(() => _isTyping = false);
-    _inputFocus.requestFocus();
-
-    // Auto-voice if voice enabled
-    if (voiceEnabled) {
-      final localeCode = context.read<AppState>().locale.languageCode;
-      
-      if (audioResponse != null) {
-        // ✨ Use Gemini Native Audio (human-quality voice returned from REST)
-        setState(() => _isSpeaking = true);
-        await _voiceService.playPcmBytes(audioResponse);
-        if (mounted) setState(() => _isSpeaking = false);
-      } else {
-        // Fallback: flutter_tts (for Ollama or if Gemini failed to generate audio)
-        setState(() => _isSpeaking = true);
-        await _voiceService.speak(responseText, languageCode: localeCode);
-        if (mounted) setState(() => _isSpeaking = false);
+    // If Voice is ON: wait for speech synthesis synchronization before starting playback & typewriter
+    if (voiceEnabled && cleanText.isNotEmpty && !cleanText.startsWith('Ошибка')) {
+      if (!appState.isOllamaModel) {
+        audioBytes = await _geminiService.synthesizeSpeech(cleanText);
       }
+
+      final words = cleanText.split(' ');
+      Duration wordDelay = const Duration(milliseconds: 55);
+      if (audioBytes != null && words.isNotEmpty) {
+        final audioMs = (audioBytes.length / 48).round();
+        final delayMs = ((audioMs * 0.85) / words.length).clamp(30.0, 90.0).round();
+        wordDelay = Duration(milliseconds: delayMs);
+      }
+
+      await _streamTypewriter(
+        cleanText,
+        wordDelay: wordDelay,
+        audioBytes: audioBytes,
+        localeCode: audioBytes == null ? appState.locale.languageCode : null,
+      );
+    } else {
+      // Voice is OFF: instant fast typewriter effect (18ms per word)
+      await _streamTypewriter(
+        cleanText,
+        wordDelay: const Duration(milliseconds: 18),
+      );
+    }
+  }
+
+  /// Эффект плавной печати текста с синхронизацией с голосом
+  Future<void> _streamTypewriter(
+    String fullText, {
+    required Duration wordDelay,
+    Uint8List? audioBytes,
+    String? localeCode,
+  }) async {
+    if (!mounted) return;
+
+    setState(() {
+      _isTyping = false;
+      _isStreaming = true;
+      _streamingText = '';
+    });
+    _scrollToBottom();
+
+    // Если есть аудио, начинаем воспроизведение синхронно с началом печати
+    if (audioBytes != null) {
+      setState(() => _isSpeaking = true);
+      _voiceService.playPcmBytes(audioBytes).then((_) {
+        if (mounted) setState(() => _isSpeaking = false);
+      });
+    } else if (localeCode != null) {
+      setState(() => _isSpeaking = true);
+      _voiceService.speak(fullText, languageCode: localeCode).then((_) {
+        if (mounted) setState(() => _isSpeaking = false);
+      });
+    }
+
+    final words = fullText.split(' ');
+    for (int i = 0; i < words.length; i++) {
+      if (!mounted || !_isStreaming) break;
+      final part = (i == 0) ? words[i] : ' ${words[i]}';
+      setState(() {
+        _streamingText += part;
+      });
+      _scrollToBottom();
+      await Future.delayed(wordDelay);
+    }
+
+    if (!mounted) return;
+
+    // Сохраняем финальное сообщение в Firestore после окончания печати
+    final user = context.read<AppState>().currentUser;
+    if (user != null) {
+      final aiMessage = Message(text: fullText, isUser: false);
+      await _firestoreService.saveMessage(user.uid, aiMessage);
+    }
+
+    if (mounted) {
+      setState(() {
+        _isStreaming = false;
+        _streamingText = '';
+      });
     }
   }
 
@@ -257,54 +308,59 @@ class _ChatScreenState extends State<ChatScreen> {
     _geminiService.resetChat();
   }
 
+  void _handleSuggestion(String prompt, {bool autoSend = false}) {
+    _controller.text = prompt;
+    _controller.selection = TextSelection.fromPosition(
+      TextPosition(offset: _controller.text.length),
+    );
+    if (autoSend) {
+      _sendMessage();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _inputFocus.canRequestFocus) {
+          _inputFocus.requestFocus();
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AppState>().currentUser;
+    final appState = context.watch<AppState>();
+    final user = appState.currentUser;
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
 
     if (user == null) {
          return Center(child: Text(l10n.errorAuth));
     }
 
+    final pendingPrompt = appState.consumePendingPrompt();
+    if (pendingPrompt != null && pendingPrompt.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _handleSuggestion('$pendingPrompt ', autoSend: false);
+        }
+      });
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverAppBar.large(
-            expandedHeight: 110,
-            backgroundColor: isDark ? ThemeConstants.kBrandDark : scheme.surface,
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Logo01(size: 38, text: l10n.chatTitle, heroTag: null),
-              centerTitle: true,
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDark
-                        ? [
-                            ThemeConstants.kBrandCyan.withValues(alpha: 0.08),
-                            ThemeConstants.kBrandDark,
-                          ]
-                        : [
-                            scheme.primaryContainer.withValues(alpha: 0.4),
-                            scheme.surface,
-                          ],
-                  ),
-                ),
-              ),
-            ),
-            actions: [
-              IconButton(
-                onPressed: _clearChat,
-                icon: const Icon(Icons.delete_sweep_rounded),
-                tooltip: l10n.clearChat,
-              ),
-            ],
+      // Minimal Vercel-style app bar with spacious header
+      appBar: AppBar(
+        toolbarHeight: 68,
+        title: Logo01(size: 36, text: l10n.chatTitle, heroTag: null),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: _clearChat,
+            icon: const Icon(Icons.delete_sweep_rounded, size: 22),
+            tooltip: l10n.clearChat,
           ),
+          const SizedBox(width: 8),
         ],
+      ),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [],
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -328,7 +384,12 @@ class _ChatScreenState extends State<ChatScreen> {
                       );
                     }
                     final messages = snapshot.data!;
-                    if (messages.isEmpty) return const _EmptyState();
+                    if (messages.isEmpty) {
+                      return _EmptyState(
+                        onSelectSuggestion: (prompt, {autoSend = false}) =>
+                            _handleSuggestion(prompt, autoSend: autoSend),
+                      );
+                    }
 
                     if (messages.length > _prevMessageCount) {
                       _prevMessageCount = messages.length;
@@ -338,16 +399,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     return ListView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.only(
-                          top: 96, bottom: 16, left: 4, right: 4),
+                          top: 8, bottom: 16, left: 4, right: 4),
                       itemCount: messages.length + (_isStreaming ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (index == messages.length) {
-                          final appState = context.read<AppState>();
-                          String placeholder = '🎤 (Voice response...)';
-                          if (appState.locale.languageCode == 'ru') placeholder = '🎤 (Голосовой ответ...)';
-                          if (appState.locale.languageCode == 'kk') placeholder = '🎤 (Дауыстық жауап...)';
                           return MessageBubble(
-                              text: _streamingText.isNotEmpty ? _streamingText : placeholder,
+                              text: _streamingText.isNotEmpty ? _streamingText : '▋',
                               isUser: false,
                               isStreaming: true,
                               isError: false);
@@ -378,16 +435,16 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               if (_isTyping) _TypingIndicator(),
               Container(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.black.withValues(alpha: 0.3)
-                      : scheme.surface.withValues(alpha: 0.9),
+                      ? ThemeConstants.kDark0.withValues(alpha: 0.92)
+                      : ThemeConstants.kLight0.withValues(alpha: 0.95),
                   border: Border(
                     top: BorderSide(
                       color: isDark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : Colors.black.withValues(alpha: 0.05),
+                          ? ThemeConstants.kDarkBorder
+                          : ThemeConstants.kLightBorder,
                     ),
                   ),
                 ),
@@ -413,9 +470,9 @@ class _ChatScreenState extends State<ChatScreen> {
               bottom: 100,
               child: FloatingActionButton.small(
                 onPressed: _scrollToBottom,
-                backgroundColor: ThemeConstants.kBrandCyan,
-                foregroundColor: ThemeConstants.kBrandDark,
-                child: const Icon(Icons.arrow_downward_rounded),
+                backgroundColor: ThemeConstants.kAccentBlue,
+                foregroundColor: Colors.white,
+                child: const Icon(Icons.arrow_downward_rounded, size: 18),
               ),
             ),
           ],
@@ -542,34 +599,28 @@ class _InputBarState extends State<_InputBar> with SingleTickerProviderStateMixi
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final isDark  = Theme.of(context).brightness == Brightness.dark;
     final l10n   = AppLocalizations.of(context)!;
-    final focusBorderColor =
-        isDark ? ThemeConstants.kBrandCyan : scheme.primary;
+    const focusBorderColor = ThemeConstants.kAccentBlue;
     return AnimatedContainer(
       duration: ThemeConstants.kDurationMed,
       curve: ThemeConstants.kCurveStandard,
       padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
-        color: isDark
-            ? (_isFocused
-                ? Colors.white.withValues(alpha: 0.07)
-                : Colors.white.withValues(alpha: 0.04))
-            : (_isFocused ? Colors.white : scheme.surfaceContainerHighest.withValues(alpha: 0.6)),
-        borderRadius: BorderRadius.circular(26),
+        color: isDark ? ThemeConstants.kDark1 : ThemeConstants.kLight1,
+        borderRadius: BorderRadius.circular(ThemeConstants.kRadiusMd),
         border: Border.all(
           color: _isFocused
               ? focusBorderColor.withValues(alpha: 0.8)
-              : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black12),
+              : (isDark ? ThemeConstants.kDarkBorder : ThemeConstants.kLightBorder),
           width: _isFocused ? 1.5 : 1,
         ),
         boxShadow: _isFocused
             ? [
                 BoxShadow(
-                  color: focusBorderColor.withValues(alpha: isDark ? 0.18 : 0.12),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  color: focusBorderColor.withValues(alpha: 0.12),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
                 )
               ]
             : [],
@@ -578,30 +629,50 @@ class _InputBarState extends State<_InputBar> with SingleTickerProviderStateMixi
         children: [
           const SizedBox(width: 14),
           Expanded(
-            child: TextField(
-              controller: widget.controller,
-              focusNode: widget.focusNode,
-              style: TextStyle(
-                color: isDark ? Colors.white : scheme.onSurface,
-                fontSize: 15,
-              ),
-              decoration: InputDecoration(
-                filled: false,
-                hintText: l10n.askSomething,
-                hintStyle: TextStyle(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.3)
-                      : scheme.onSurface.withValues(alpha: 0.4),
+            child: Focus(
+              onKeyEvent: (node, event) {
+                if (event is KeyDownEvent &&
+                    event.logicalKey == LogicalKeyboardKey.enter &&
+                    !HardwareKeyboard.instance.isShiftPressed) {
+                  if (widget.enabled &&
+                      !widget.isListening &&
+                      widget.controller.text.trim().isNotEmpty) {
+                    widget.onSend();
+                    return KeyEventResult.handled;
+                  }
+                }
+                return KeyEventResult.ignored;
+              },
+              child: TextField(
+                controller: widget.controller,
+                focusNode: widget.focusNode,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) {
+                  if (widget.enabled &&
+                      !widget.isListening &&
+                      widget.controller.text.trim().isNotEmpty) {
+                    widget.onSend();
+                  }
+                },
+                style: TextStyle(
+                  color: isDark ? ThemeConstants.kTextPrimary : ThemeConstants.kTextPrimaryLight,
+                  fontSize: 15,
                 ),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: InputDecoration(
+                  filled: false,
+                  hintText: l10n.askSomething,
+                  hintStyle: TextStyle(
+                    color: isDark ? ThemeConstants.kTextTertiary : const Color(0xFFAAAAAA),
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                maxLines: null,
               ),
-              maxLines: null,
-              enabled: widget.enabled,
             ),
           ),
           if (widget.isSpeaking)
@@ -644,12 +715,12 @@ class _InputBarState extends State<_InputBar> with SingleTickerProviderStateMixi
                 onPressed: widget.enabled ? widget.onVoice : null,
                 icon: Icon(widget.isListening ? Icons.mic_rounded : Icons.mic_none_rounded, size: 20),
                 style: IconButton.styleFrom(
-                  backgroundColor: widget.isListening 
-                      ? Colors.redAccent 
-                      : (isDark ? Colors.white.withValues(alpha: 0.1) : scheme.surfaceContainerHighest),
-                  foregroundColor: widget.isListening 
-                      ? Colors.white 
-                      : (isDark ? Colors.white70 : scheme.onSurfaceVariant),
+                  backgroundColor: widget.isListening
+                      ? const Color(0xFFEF4444)
+                      : (isDark ? ThemeConstants.kDark2 : ThemeConstants.kLight0),
+                  foregroundColor: widget.isListening
+                      ? Colors.white
+                      : (isDark ? ThemeConstants.kTextSecondary : ThemeConstants.kTextSecondaryLight),
                   padding: const EdgeInsets.all(10),
                 ),
               ),
@@ -662,10 +733,9 @@ class _InputBarState extends State<_InputBar> with SingleTickerProviderStateMixi
               onPressed: (widget.enabled && !widget.isListening) ? widget.onSend : null,
               icon: const Icon(Icons.send_rounded, size: 20),
               style: IconButton.styleFrom(
-                backgroundColor: isDark
-                    ? ThemeConstants.kBrandCyan
-                    : scheme.primary,
-                foregroundColor: isDark ? ThemeConstants.kBrandDark : scheme.onPrimary,
+                backgroundColor: ThemeConstants.kAccentBlue,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: isDark ? ThemeConstants.kDark2 : ThemeConstants.kLight0,
                 padding: const EdgeInsets.all(10),
               ),
             ),
@@ -678,39 +748,113 @@ class _InputBarState extends State<_InputBar> with SingleTickerProviderStateMixi
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final void Function(String prompt, {bool autoSend}) onSelectSuggestion;
+  const _EmptyState({required this.onSelectSuggestion});
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isDark  = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n   = AppLocalizations.of(context)!;
+    final textColor   = isDark ? ThemeConstants.kTextPrimary   : ThemeConstants.kTextPrimaryLight;
+    final mutedColor  = isDark ? ThemeConstants.kTextSecondary : ThemeConstants.kTextSecondaryLight;
+    final borderColor = isDark ? ThemeConstants.kDarkBorder    : ThemeConstants.kLightBorder;
+    final chipBg      = isDark ? ThemeConstants.kDark1         : ThemeConstants.kLight1;
+
+    final suggestions = [
+      (Icons.lightbulb_outline_rounded, l10n.suggestionQuantum,   l10n.suggestionQuantum,   true),
+      (Icons.code_rounded,              l10n.suggestionDart,      l10n.promptCode,          false),
+      (Icons.translate_rounded,         l10n.suggestionTranslate, l10n.promptTranslation,   false),
+    ];
+
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Logo01(size: 80, showText: false, heroTag: null),
-          const SizedBox(height: 28),
-          Text(
-            l10n.askSomething,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : scheme.onSurface,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.helloMiku,
-            style: TextStyle(
-              fontSize: 15,
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.45)
-                  : scheme.onSurface.withValues(alpha: 0.55),
-            ),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo
+            Logo01(size: 48, showText: false, heroTag: null)
+                .animate().fadeIn(duration: 400.ms).scale(
+                  begin: const Offset(0.85, 0.85),
+                  end: const Offset(1, 1),
+                  duration: 400.ms,
+                  curve: Curves.easeOutCubic,
+                ),
+
+            const SizedBox(height: 20),
+
+            // Headline
+            Text(
+              l10n.askSomething,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: textColor,
+                letterSpacing: -0.5,
+                height: 1.2,
+              ),
+            ).animate(delay: 60.ms).fadeIn(duration: 350.ms).slideY(begin: 0.06, end: 0, duration: 350.ms),
+
+            const SizedBox(height: 8),
+
+            Text(
+              l10n.helloMiku,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: mutedColor,
+                height: 1.5,
+              ),
+            ).animate(delay: 100.ms).fadeIn(duration: 300.ms),
+
+            const SizedBox(height: 28),
+
+            // Suggestion chips — CTA for empty state
+            ...suggestions.asMap().entries.map((entry) {
+              final i = entry.key;
+              final (icon, label, prompt, autoSend) = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GestureDetector(
+                  onTap: () => onSelectSuggestion(prompt, autoSend: autoSend),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: chipBg,
+                      borderRadius: BorderRadius.circular(ThemeConstants.kRadiusMd),
+                      border: Border.all(color: borderColor, width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(icon, size: 16, color: mutedColor),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: mutedColor,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 14,
+                          color: mutedColor.withValues(alpha: 0.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ).animate(delay: (160 + i * 60).ms)
+                .fadeIn(duration: 300.ms)
+                .slideY(begin: 0.06, end: 0, duration: 300.ms, curve: Curves.easeOut);
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -762,19 +906,18 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        width: 7,
-        height: 7,
-        decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? ThemeConstants.kBrandCyan
-                  .withValues(alpha: 0.25 + (0.75 * _controller.value))
-              : Theme.of(context)
-                  .colorScheme
-                  .primary
-                  .withValues(alpha: 0.3 + (0.7 * _controller.value)),
-          shape: BoxShape.circle,
+      builder: (context, child) => Transform.translate(
+        offset: Offset(0, -3 * _controller.value),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: ThemeConstants.kAccentBlue.withValues(
+              alpha: 0.3 + (0.7 * _controller.value),
+            ),
+            shape: BoxShape.circle,
+          ),
         ),
       ),
     );

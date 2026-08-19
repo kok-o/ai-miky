@@ -92,5 +92,19 @@
   "newStatus": "New",
   "home": "Home",
   "chat": "Chat",
-  "wrongCurrentPassword": "Wrong current password"
+  "wrongCurrentPassword": "Wrong current password",
+  "analysis": "Analysis",
+  "code": "Code",
+  "translation": "Translate",
+  "promptAnalysis": "Perform a detailed analysis of:",
+  "promptCode": "Write a Dart function for:",
+  "promptTranslation": "Help me translate the following text:",
+  "suggestionQuantum": "Explain quantum computing in simple terms",
+  "suggestionDart": "Write a Dart function",
+  "suggestionTranslate": "Help me translate a text",
+  "appearanceSection": "Appearance",
+  "modelSection": "Model",
+  "accountSection": "Account",
+  "voiceResponsesTitle": "AI Voice Responses",
+  "voiceResponsesSubtitle": "AI reads responses aloud"
 }

@@ -198,6 +198,15 @@ class FirestoreService {
     }
   }
 
+  // Update user preferences (theme, voice, model, language)
+  Future<void> updateUserSettings(String userId, Map<String, dynamic> settings) async {
+    try {
+      await _db.collection('users').doc(userId).set(settings, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error updating user settings: $e');
+    }
+  }
+
   // Get user profile data
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {

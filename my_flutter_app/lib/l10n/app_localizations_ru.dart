@@ -292,4 +292,46 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get wrongCurrentPassword => 'Неверный текущий пароль';
+
+  @override
+  String get analysis => 'Анализ';
+
+  @override
+  String get code => 'Код';
+
+  @override
+  String get translation => 'Перевод';
+
+  @override
+  String get promptAnalysis => 'Проведи подробный анализ:';
+
+  @override
+  String get promptCode => 'Напиши функцию на Dart:';
+
+  @override
+  String get promptTranslation => 'Помоги перевести следующий текст:';
+
+  @override
+  String get suggestionQuantum => 'Объясни квантовые компьютеры простыми словами';
+
+  @override
+  String get suggestionDart => 'Напиши функцию на Dart';
+
+  @override
+  String get suggestionTranslate => 'Помоги перевести текст на английский';
+
+  @override
+  String get appearanceSection => 'Внешний вид';
+
+  @override
+  String get modelSection => 'Модель';
+
+  @override
+  String get accountSection => 'Аккаунт';
+
+  @override
+  String get voiceResponsesTitle => 'Голосовые ответы ИИ';
+
+  @override
+  String get voiceResponsesSubtitle => 'ИИ зачитывает ответы вслух';
 }

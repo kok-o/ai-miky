@@ -7,44 +7,32 @@ void main() async {
   final envContent = await envFile.readAsString();
   final apiKey = envContent.split('=').last.trim();
   
-  final model = 'gemini-2.5-flash-preview-native-audio-dialog';
-  final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey');
-  
-  final body = {
-    "contents": [{
-      "role": "user",
-      "parts": [{"text": "Hello, say one word."}]
-    }],
-    "generationConfig": {
-      "responseModalities": ["TEXT", "AUDIO"],
-      "speechConfig": {
-        "voiceConfig": {
-          "prebuiltVoiceConfig": {
-            "voiceName": "Aoede"
-          }
-        }
-      }
-    }
-  };
+  for (var model in ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite-preview']) {
+    final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey');
+    final body = {
+      "contents": [{
+        "role": "user",
+        "parts": [{"text": "Привет! Назови свою модель и поздоровайся."}]
+      }]
+    };
 
-  final response = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(body)
-  );
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body)
+      );
 
-  print('Status: ${response.statusCode}');
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    final parts = data['candidates'][0]['content']['parts'];
-    for (var p in parts) {
-      if (p['text'] != null) {
-        print('TEXT: ${p['text']}');
+      print('Model: $model -> Status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final parts = data['candidates'][0]['content']['parts'];
+        print('Response: ${parts[0]['text']}');
       } else {
-        print('HAS AUDIO PART');
+        print('Error: ${response.body}');
       }
+    } catch (e) {
+      print('Exception for $model: $e');
     }
-  } else {
-    print('ERROR: ${response.body}');
   }
 }

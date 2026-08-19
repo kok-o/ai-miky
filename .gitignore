@@ -1,0 +1,23 @@
+# IDE & Tool configurations (keep local only)
+.vscode/
+.idea/
+.agents/
+.gemini/
+
+# Submodules or local tool directories
+flutter/
+
+# Environment files and secrets
+*.env
+*.env.*
+env.txt
+my_flutter_app/env.txt
+
+# Flutter / Dart build artifacts & caches
+.dart_tool/
+.pub-cache/
+.pub/
+build/
+*.class
+*.log
+.DS_Store

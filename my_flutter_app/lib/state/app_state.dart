@@ -18,7 +18,7 @@ class AppState extends ChangeNotifier {
   static const String _voiceEnabledKey = 'voice_enabled';
 
   ThemeMode _themeMode = ThemeMode.light;
-  String _selectedModel = 'gemini-2.5-flash';
+  String _selectedModel = 'gemini-3.1-flash-lite';
   String _displayName = '';
   String _bio = '';
   int _avatarColorValue = 0xFF7C8CFF;
@@ -29,6 +29,7 @@ class AppState extends ChangeNotifier {
   String _ollamaBaseUrl = 'http://localhost:11434';
   String _role = 'user';
   bool _voiceEnabled = true;
+  String? _pendingPrompt;
   
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirestoreService _firestoreService = FirestoreService();
@@ -48,6 +49,18 @@ class AppState extends ChangeNotifier {
   String get displayName => _displayName;
   String get bio => _bio;
   Color get avatarColor => Color(_avatarColorValue);
+  String? get pendingPrompt => _pendingPrompt;
+
+  void setPendingPrompt(String? prompt) {
+    _pendingPrompt = prompt;
+    notifyListeners();
+  }
+
+  String? consumePendingPrompt() {
+    final p = _pendingPrompt;
+    _pendingPrompt = null;
+    return p;
+  }
   int get messageCount => _messageCount;
   int get consecutiveDays => _consecutiveDays;
   String? get profilePhotoUrl => _profilePhotoUrl;
@@ -76,11 +89,20 @@ class AppState extends ChangeNotifier {
     }
     if (model != null && model.isNotEmpty) {
       // Validate model exists in current allowed list
-      const allowedModels = ['gemini-2.5-flash', 'ollama:llama3', 'ollama:mistral', 'ollama:qwen3:8b', 'ollama:phi3'];
+      const allowedModels = [
+        'gemini-3.1-flash-lite',
+        'gemini-3.5-flash-lite',
+        'gemini-3.7-flash',
+        'gemini-2.5-flash',
+        'ollama:llama3',
+        'ollama:mistral',
+        'ollama:qwen3:8b',
+        'ollama:phi3',
+      ];
       if (allowedModels.contains(model)) {
         _selectedModel = model;
       } else {
-        _selectedModel = 'gemini-2.5-flash'; // Fallback
+        _selectedModel = 'gemini-3.1-flash-lite'; // 500 RPD fallback
       }
     }
     if (name != null) {
@@ -129,18 +151,16 @@ class AppState extends ChangeNotifier {
     // Update consecutive days on login
     _consecutiveDays = await _firestoreService.updateConsecutiveDays(userId);
 
-    // Load user profile
+    // Load user profile and cloud preferences
     final profileData = await _firestoreService.getUserProfile(userId);
     if (profileData != null) {
+      final prefs = await SharedPreferences.getInstance();
       if (profileData.containsKey('displayName')) {
         _displayName = profileData['displayName'] as String;
-        // Also update local prefs to keep them in sync/cache
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_nameKey, _displayName);
       }
       if (profileData.containsKey('bio')) {
         _bio = profileData['bio'] as String;
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_bioKey, _bio);
       }
       if (profileData.containsKey('profilePhotoUrl')) {
@@ -149,14 +169,30 @@ class AppState extends ChangeNotifier {
       if (profileData.containsKey('role')) {
         _role = profileData['role'] as String;
       }
-    } else {
-       // Only load from prefs if not found in Firestore (or offline/first load fallback)
-       // But strictly speaking, if we follow the pattern, we already loaded prefs in load()
-       // so we just override if Firestore has data.
+      if (profileData.containsKey('themeMode')) {
+        final themeStr = profileData['themeMode'] as String;
+        _themeMode = themeStr == 'dark' ? ThemeMode.dark : ThemeMode.light;
+        await prefs.setInt(_themeKey, _themeMode.index);
+      }
+      if (profileData.containsKey('voiceEnabled')) {
+        _voiceEnabled = profileData['voiceEnabled'] as bool;
+        await prefs.setBool(_voiceEnabledKey, _voiceEnabled);
+      }
+      if (profileData.containsKey('selectedModel')) {
+        final modelStr = profileData['selectedModel'] as String;
+        if (modelStr.isNotEmpty) {
+          _selectedModel = modelStr;
+          await prefs.setString(_modelKey, _selectedModel);
+        }
+      }
+      if (profileData.containsKey('language')) {
+        final langStr = profileData['language'] as String;
+        if (langStr.isNotEmpty) {
+          _locale = Locale(langStr);
+          await prefs.setString(_languageKey, _locale.languageCode);
+        }
+      }
     }
-    
-    // Load profile photo (redundant if covered above, but kept for specific getter)
-    // _profilePhotoUrl = await _firestoreService.getProfilePhotoUrl(userId); 
     
     // Load message count
     _messageCount = await _firestoreService.getUserMessageCount(userId);
@@ -200,6 +236,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_themeKey, mode.index);
+    if (isLoggedIn) {
+      await _firestoreService.updateUserSettings(currentUser!.uid, {
+        'themeMode': mode == ThemeMode.dark ? 'dark' : 'light',
+      });
+    }
   }
 
   Future<void> setSelectedModel(String model) async {
@@ -207,6 +248,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_modelKey, model);
+    if (isLoggedIn) {
+      await _firestoreService.updateUserSettings(currentUser!.uid, {
+        'selectedModel': model,
+      });
+    }
   }
 
   Future<void> setOllamaBaseUrl(String url) async {
@@ -250,6 +296,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_languageKey, locale.languageCode);
+    if (isLoggedIn) {
+      await _firestoreService.updateUserSettings(currentUser!.uid, {
+        'language': locale.languageCode,
+      });
+    }
   }
 
   Future<void> setVoiceEnabled(bool value) async {
@@ -257,16 +308,36 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_voiceEnabledKey, value);
+    if (isLoggedIn) {
+      await _firestoreService.updateUserSettings(currentUser!.uid, {
+        'voiceEnabled': value,
+      });
+    }
   }
 
   Future<String?> register({
     required String email,
     required String password,
+    String? name,
     dynamic l10n,
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       if (credential.user != null) {
+        if (name != null && name.trim().isNotEmpty) {
+          final trimmedName = name.trim();
+          await credential.user!.updateDisplayName(trimmedName);
+          _displayName = trimmedName;
+          await _firestoreService.updateUserProfile(credential.user!.uid, trimmedName, '');
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_nameKey, trimmedName);
+        }
+        await _firestoreService.updateUserSettings(credential.user!.uid, {
+          'themeMode': _themeMode == ThemeMode.dark ? 'dark' : 'light',
+          'voiceEnabled': _voiceEnabled,
+          'selectedModel': _selectedModel,
+          'language': _locale.languageCode,
+        });
         await _initializeUserStats(credential.user!.uid);
       }
       return null;

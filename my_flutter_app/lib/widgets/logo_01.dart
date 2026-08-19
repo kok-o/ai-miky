@@ -45,14 +45,14 @@ class Logo01 extends StatelessWidget {
               ),
             ),
             if (showText && text != null && text!.isNotEmpty) ...[
-              SizedBox(width: size * 0.28),
+              SizedBox(width: size * 0.32),
               Text(
                 text!,
                 style: TextStyle(
-                  fontSize: size * 0.52,
+                  fontSize: size * 0.56,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : Theme.of(context).colorScheme.onSurface,
-                  letterSpacing: -0.5,
+                  color: isDark ? ThemeConstants.kTextPrimary : ThemeConstants.kTextPrimaryLight,
+                  letterSpacing: -0.4,
                 ),
               ),
             ],
